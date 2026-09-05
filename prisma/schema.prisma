@@ -1,0 +1,148 @@
+// Prisma schema for AI-Powered Resume Analyzer & Interview Assistant
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+enum ParseConfidence {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum RequirementPriority {
+  REQUIRED
+  NICE_TO_HAVE
+}
+
+enum GapType {
+  MISSING
+  PARTIAL
+  UNPROVEN
+}
+
+enum QuestionCategory {
+  TECHNICAL
+  BEHAVIORAL
+}
+
+model Candidate {
+  id              String          @id @default(uuid())
+  name            String?
+  email           String?
+  rawText         String          @db.Text
+  parsedJson      Json
+  anonymizedName  String?
+  anonymizedText  String?         @db.Text
+  anonymizedJson  Json?
+  generalSummary  String?         @db.Text
+  parseConfidence ParseConfidence @default(HIGH)
+  resumeFileUrl   String?
+  createdAt       DateTime        @default(now())
+
+  matchScores        MatchScore[]
+  suspiciousContents SuspiciousContent[]
+
+  @@map("candidates")
+}
+
+model SuspiciousContent {
+  id              String   @id @default(uuid())
+  candidateId     String
+  flaggedText     String   @db.Text
+  detectionReason String   @db.Text
+  createdAt       DateTime @default(now())
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@map("suspicious_contents")
+}
+
+model JobDescription {
+  id           String   @id @default(uuid())
+  title        String
+  rawText      String   @db.Text
+  requirements Json     // JSON array of requirements
+  createdAt    DateTime @default(now())
+
+  requirementsList JobRequirement[]
+  matchScores      MatchScore[]
+
+  @@map("job_descriptions")
+}
+
+model JobRequirement {
+  id               String              @id @default(uuid())
+  jobDescriptionId String
+  text             String              @db.Text
+  priority         RequirementPriority @default(REQUIRED)
+  embedding        Unsupported("vector(768)")?
+  embeddingJson    Json?               // Fallback array for environments without active pgvector extension
+  createdAt        DateTime            @default(now())
+
+  jobDescription JobDescription @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
+
+  @@map("job_requirements")
+}
+
+model MatchScore {
+  id                String   @id @default(uuid())
+  candidateId       String
+  jobDescriptionId  String
+  overallScore      Float
+  contextualSummary String?  @db.Text
+  createdAt         DateTime @default(now())
+
+  candidate      Candidate      @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  jobDescription JobDescription @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
+
+  requirementScores  RequirementScore[]
+  skillGaps          SkillGap[]
+  interviewQuestions InterviewQuestion[]
+
+  @@map("match_scores")
+}
+
+model RequirementScore {
+  id                 String              @id @default(uuid())
+  matchScoreId       String
+  requirementText    String              @db.Text
+  priority           RequirementPriority @default(REQUIRED)
+  similarityScore    Float
+  evidenceText       String?             @db.Text
+  evidenceSourceSpan String?
+
+  matchScore MatchScore @relation(fields: [matchScoreId], references: [id], onDelete: Cascade)
+
+  @@map("requirement_scores")
+}
+
+model SkillGap {
+  id           String  @id @default(uuid())
+  matchScoreId String
+  skillName    String
+  gapType      GapType
+
+  matchScore MatchScore @relation(fields: [matchScoreId], references: [id], onDelete: Cascade)
+
+  @@map("skill_gaps")
+}
+
+model InterviewQuestion {
+  id           String           @id @default(uuid())
+  matchScoreId String
+  questionText String           @db.Text
+  reasoning    String?          @db.Text
+  category     QuestionCategory
+
+  matchScore MatchScore @relation(fields: [matchScoreId], references: [id], onDelete: Cascade)
+
+  @@map("interview_questions")
+}
