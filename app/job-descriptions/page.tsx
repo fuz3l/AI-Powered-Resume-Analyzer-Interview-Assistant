@@ -5,13 +5,13 @@ import Link from "next/link";
 import {
   FileText,
   Plus,
-  Layers,
-  Sparkles,
+  SquaresFour,
+  Sparkle,
   ArrowRight,
   Check,
-  AlertTriangle,
-  ChevronDown,
-} from "lucide-react";
+  Warning,
+  CaretDown,
+} from "@phosphor-icons/react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 interface JobRequirement {
@@ -105,42 +105,43 @@ export default function JobDescriptionsPage() {
           
           {/* Header Card */}
           <header className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-600 font-extrabold text-sm shadow-sm">
-                <Layers className="w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold tracking-tight text-slate-900">
-                  Candidate Matrix
-                </h1>
-                <p className="text-xs font-medium text-slate-500">
+            <div className="flex items-center gap-3.5">
+              <Link href="/dashboard" className="flex items-center">
+                <img
+                  src="/logo.png"
+                  alt="Evidently"
+                  className="h-8 sm:h-9 w-auto object-contain"
+                />
+              </Link>
+              <div className="hidden md:block border-l border-slate-200 pl-3.5">
+                <p className="text-xs font-medium text-slate-500 whitespace-nowrap">
                   Job Position & Requirements Matrix Mode
                 </p>
               </div>
             </div>
 
-            <nav className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-full border border-slate-200/80 font-medium text-xs">
+            <nav className="flex items-center gap-1 sm:gap-1.5 bg-slate-100 p-1.5 rounded-full border border-slate-200/80 font-medium text-xs flex-shrink-0">
               <Link
                 href="/dashboard"
-                className="px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition"
+                className="px-3 sm:px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition whitespace-nowrap"
               >
-                Dashboard
+                Candidate Matrix
               </Link>
               <Link
                 href="/job-descriptions"
-                className="px-5 py-2 rounded-full bg-slate-900 text-white font-semibold shadow-sm transition"
+                className="px-4 sm:px-5 py-2 rounded-full bg-slate-900 text-white font-semibold shadow-sm transition whitespace-nowrap"
               >
                 Job Positions
               </Link>
               <Link
                 href="/"
-                className="px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition"
+                className="px-3 sm:px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition whitespace-nowrap"
               >
-                Batch Pipeline
+                Batch Upload
               </Link>
               <Link
                 href="/how-to-use"
-                className="px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition"
+                className="px-3 sm:px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition whitespace-nowrap"
               >
                 How to Use
               </Link>
@@ -199,7 +200,7 @@ export default function JobDescriptionsPage() {
 
                 {formError && (
                   <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 flex-shrink-0 text-rose-600" />
+                    <Warning weight="fill" className="w-4 h-4 flex-shrink-0 text-rose-600" />
                     <span>{formError}</span>
                   </div>
                 )}
@@ -216,7 +217,7 @@ export default function JobDescriptionsPage() {
                     </>
                   ) : (
                     <>
-                      <Plus className="w-4 h-4" />
+                      <Plus weight="bold" className="w-4 h-4" />
                       Parse & Store Job Position
                     </>
                   )}
@@ -298,7 +299,7 @@ export default function JobDescriptionsPage() {
                           href={`/dashboard?jobDescriptionId=${selectedJd.id}`}
                           className="px-4 py-2 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition inline-flex items-center gap-1"
                         >
-                          Evaluate Candidates <ArrowRight className="w-3.5 h-3.5" />
+                          Evaluate Candidates <ArrowRight weight="bold" className="w-3.5 h-3.5" />
                         </Link>
                       </div>
 

@@ -2,6 +2,24 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import {
+  BookOpen,
+  FileText,
+  CloudArrowUp,
+  Lightning,
+  ShieldCheck,
+  CaretDown,
+  ArrowRight,
+  Sparkle,
+  Lock,
+  SquaresFour,
+  CheckCircle,
+  Warning,
+  Question,
+  Clock,
+  Trophy,
+} from "@phosphor-icons/react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function HowToUsePage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -14,30 +32,26 @@ export default function HowToUsePage() {
     {
       index: "01",
       tag: "Configuration",
-      tagStyle: "bg-[#E1F3FE] text-[#1F6C9F]",
-      title: "Establish Job Criteria",
-      summary:
-        "Define target positions and extract structured requirements from raw text.",
+      tagStyle: "bg-[#E1F3FE] text-[#1F6C9F] border border-[#C6E7FD]",
+      iconColor: "bg-blue-600",
+      title: "Establish Job Criteria & Priorities",
+      summary: "Define target positions and extract structured requirements from raw text.",
       description:
-        "Every evaluation within Candidate Matrix functions relative to a defined job position. Paste job descriptions directly from your existing postings. Gemini decomposes unstructured text into discrete competencies, required years of practice, and qualifications, assigning relative weights to each requirement.",
-      actions: [
-        {
-          label: "Open Job Positions",
-          href: "/job-descriptions",
-        },
-      ],
+        "Every evaluation in Evidently functions relative to a defined job position. Paste job postings directly into the system. The parser decomposes unstructured text into discrete competencies, years of experience, and qualifications, calibrating relative weights for each requirement.",
+      actionLabel: "Set Up Job Positions",
+      actionHref: "/job-descriptions",
       points: [
         {
           label: "Position Setup",
-          detail: "Specify job title, department, and paste the raw description document.",
+          detail: "Specify job title, department, and paste the raw job description.",
         },
         {
           label: "Attribute Extraction",
-          detail: "Automated extraction of core skills, education standards, and seniority level.",
+          detail: "Automated extraction of core skills, experience depth, and education standards.",
         },
         {
           label: "Weight Calibration",
-          detail: "Requirements are calibrated by priority (Essential, Preferred, Secondary).",
+          detail: "Requirements classified by priority (Required vs. Nice-to-Have).",
         },
       ],
       shortcut: "Alt + 1",
@@ -45,18 +59,14 @@ export default function HowToUsePage() {
     {
       index: "02",
       tag: "Ingestion",
-      tagStyle: "bg-[#EDF3EC] text-[#346538]",
-      title: "Batch Resume Processing",
-      summary:
-        "Multi-document ingestion with PDF and DOCX structural parsing.",
+      tagStyle: "bg-[#EDF3EC] text-[#346538] border border-[#D3E5D2]",
+      iconColor: "bg-teal-500",
+      title: "Batch Resume Ingestion & Parsing",
+      summary: "Multi-document ingestion with PDF & DOCX structural parsing.",
       description:
         "Upload batches of candidate resumes directly. The background parser handles complex multi-column layouts, runs textual extraction with OCR fallback for scanned documents, structures candidate experience chronologically, and computes 768-dimensional semantic embeddings.",
-      actions: [
-        {
-          label: "Go to Batch Ingestion",
-          href: "/",
-        },
-      ],
+      actionLabel: "Go to Batch Ingestion",
+      actionHref: "/",
       points: [
         {
           label: "Multi-File Queue",
@@ -68,7 +78,7 @@ export default function HowToUsePage() {
         },
         {
           label: "Embedding Indexing",
-          detail: "Dense vector representations stored directly in PostgreSQL pgvector.",
+          detail: "Dense 768-dimensional vector representations indexed for ultra-fast matching.",
         },
       ],
       shortcut: "Alt + 2",
@@ -76,18 +86,14 @@ export default function HowToUsePage() {
     {
       index: "03",
       tag: "Scoring Engine",
-      tagStyle: "bg-[#FBF3DB] text-[#956400]",
-      title: "Run Matrix Evaluation & Blind Screening",
-      summary:
-        "Two-phase scoring combining pgvector cosine distance with generative reasoning.",
+      tagStyle: "bg-[#FBF3DB] text-[#8F6B00] border border-[#F5E5B8]",
+      iconColor: "bg-purple-600",
+      title: "Matrix Evaluation & Blind Screening",
+      summary: "Two-phase scoring combining vector cosine similarity with generative reasoning.",
       description:
-        "Match your candidate pool against the chosen job position with a single operation. The dual-layer pipeline first performs high-speed cosine vector ranking, followed by requirement-by-requirement verification with quote extraction. Enable Blind Screening to mask candidate names and institutions for unbiased preliminary reviews.",
-      actions: [
-        {
-          label: "View Candidate Matrix",
-          href: "/dashboard",
-        },
-      ],
+        "Match your candidate pool against the chosen job position with a single click. The dual-layer pipeline first performs high-speed cosine vector ranking, followed by requirement-by-requirement verification with quote extraction. Enable Blind Screening to mask candidate names and emails for unbiased preliminary reviews.",
+      actionLabel: "View Candidate Matrix",
+      actionHref: "/dashboard",
       points: [
         {
           label: "Position Selection",
@@ -99,7 +105,7 @@ export default function HowToUsePage() {
         },
         {
           label: "PII Masking",
-          detail: "Toggle Blind Screening to redact names, contact details, and school prestige.",
+          detail: "Toggle Blind Screening to redact names, contact details, and identifiers.",
         },
       ],
       shortcut: "Alt + 3",
@@ -107,18 +113,14 @@ export default function HowToUsePage() {
     {
       index: "04",
       tag: "Investigation",
-      tagStyle: "bg-[#FDEBEC] text-[#9F2F2D]",
+      tagStyle: "bg-[#FDEBEC] text-[#9F2F2D] border border-[#F9D2D5]",
+      iconColor: "bg-rose-500",
       title: "Audit Evidence & Generate Interview Questions",
-      summary:
-        "Inspect verified resume citations, categorize skill gaps, and build targeted question sets.",
+      summary: "Inspect verified resume citations, categorize skill gaps, and build targeted question sets.",
       description:
         "Select any candidate record to view their detailed dossier. Instead of opaque scoring, inspect the exact sentence citations extracted from their resume that substantiate each requirement score. Review identified skill gaps and generate technical and behavioral interview questions targeted directly at unverified claims.",
-      actions: [
-        {
-          label: "Inspect Candidates",
-          href: "/dashboard",
-        },
-      ],
+      actionLabel: "Inspect Candidates",
+      actionHref: "/dashboard",
       points: [
         {
           label: "Evidence Citations",
@@ -139,407 +141,420 @@ export default function HowToUsePage() {
 
   const faqs = [
     {
-      q: "Why is a candidate's score marked as Pending?",
-      a: "When resumes are initially uploaded, they are ingested into your talent pool without an active job comparison. Scores are calculated relative to a specific Job Position. To generate scores, navigate to the Candidate Matrix dashboard, choose your target job from the dropdown, and select Run AI Match.",
+      q: "Why are candidates only displayed for their selected Job Position?",
+      a: "Evidently strictly isolates candidates to the job positions they were uploaded for. Each role's talent pool is independently maintained to avoid cross-job contamination. If you switch positions in the matrix dropdown, you see only the resumes designated for that specific role.",
     },
     {
       q: "How does the dual-stage scoring algorithm operate?",
-      a: "The engine employs two complementary layers: First, PostgreSQL pgvector computes cosine similarity between candidate semantic embeddings and requirement vectors. Second, Gemini performs strict textual reasoning across each requirement, verifying concrete project evidence and calculating a weighted 0–100% composite score.",
+      a: "The engine employs two complementary layers: First, 768-dimensional vector cosine similarity evaluates global semantic alignment between candidate competency embeddings and requirement vectors. Second, Gemini performs strict textual reasoning across each requirement, verifying concrete project evidence and calculating a weighted 0–100% composite score.",
     },
     {
       q: "What data is redacted during Blind Screening mode?",
-      a: "Blind Screening strips all Personally Identifiable Information (PII), including candidate legal names, contact numbers, email addresses, geographical locations, and academic institutions, replacing them with anonymous identifiers (e.g., Candidate #8A2F) to prevent bias during initial shortlisting.",
+      a: "Blind Screening strips all Personally Identifiable Information (PII), including candidate legal names, phone numbers, and email addresses, replacing them with anonymous identifiers (e.g., Candidate 6aa4) to prevent unconscious bias during initial shortlisting.",
     },
     {
       q: "Which file formats are supported for ingestion?",
-      a: "Candidate Matrix accepts PDF (.pdf) and Microsoft Word (.docx) documents. Ingestion includes automated structural cleanup and multi-column compensation.",
+      a: "Evidently accepts PDF (.pdf) and Microsoft Word (.docx) documents. Ingestion includes automated structural cleanup, multi-column compensation, and an OCR fallback heuristic for scanned documents.",
     },
     {
       q: "Can job requirements be modified after candidates are scored?",
-      a: "Yes. You can edit requirements or adjust importance weights in Job Positions at any time. Returning to the Candidate Matrix and triggering Run AI Match will recalculate scores against the revised specification.",
+      a: "Yes. You can edit requirements or adjust importance weights in Job Positions at any time. Returning to the Candidate Matrix and triggering 'Run AI Match' will recalculate scores against the revised specification.",
+    },
+    {
+      q: "How does Prompt Injection defense work?",
+      a: "All uploaded resumes are sanitized by a multi-tier security filter. Resumes attempting to override evaluation instructions (such as hidden text instructing the AI to output a 100% score) are flagged with a Security Alert badge and neutralized before scoring.",
     },
   ];
 
   return (
-    <main className="min-h-screen bg-[#FBFBFA] text-[#111111] font-sans pb-24">
-      <div className="max-w-5xl mx-auto px-6 pt-10 space-y-20">
-        
-        {/* Editorial Top Navigation */}
-        <header className="border-b border-[#EAEAEA] pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="w-2.5 h-2.5 bg-[#111111] rounded-sm"></span>
-            <div>
-              <span className="text-sm font-semibold tracking-tight text-[#111111] block">
-                Candidate Matrix
-              </span>
-              <span className="text-[11px] text-[#787774]">
-                Operating Protocol & Documentation
-              </span>
-            </div>
-          </div>
-
-          <nav className="flex items-center gap-1 text-xs">
-            <Link
-              href="/dashboard"
-              className="px-3 py-1.5 text-[#787774] hover:text-[#111111] transition-colors"
-            >
-              Candidate Matrix
-            </Link>
-            <Link
-              href="/job-descriptions"
-              className="px-3 py-1.5 text-[#787774] hover:text-[#111111] transition-colors"
-            >
-              Job Positions
-            </Link>
-            <Link
-              href="/"
-              className="px-3 py-1.5 text-[#787774] hover:text-[#111111] transition-colors"
-            >
-              Batch Upload
-            </Link>
-            <span className="px-3 py-1.5 font-medium text-[#111111] border-b border-[#111111]">
-              Guide
-            </span>
-          </nav>
-        </header>
-
-        {/* Hero Section: Editorial Serif Typography & Clean Macro-Whitespace */}
-        <section className="space-y-6 pt-4">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-[0.05em] px-2.5 py-0.5 rounded-full bg-[#E1F3FE] text-[#1F6C9F] font-medium border border-[#1F6C9F]/10">
-              System Manual
-            </span>
-            <span className="text-xs text-[#787774]">Document Reference: CM-2026</span>
-          </div>
-
-          <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-[#111111] tracking-tightest leading-[1.08] max-w-3xl">
-            A methodical guide to automated candidate evaluation.
-          </h1>
-
-          <p className="text-[#787774] text-base sm:text-lg leading-relaxed max-w-2xl">
-            Candidate Matrix structures recruitment into an auditable evaluation pipeline: 
-            specifying requirement vectors, batch processing resumes, computing semantic 
-            evidence citations, and generating targeted interview protocols.
-          </p>
-
-          <div className="pt-2 flex items-center gap-3">
-            <Link
-              href="/dashboard"
-              className="px-4 py-2 bg-[#111111] text-white text-xs font-medium rounded-md hover:bg-[#333333] active:scale-[0.98] transition-all"
-            >
-              Open Candidate Matrix
-            </Link>
-            <Link
-              href="#protocol"
-              className="px-4 py-2 border border-[#EAEAEA] text-[#111111] text-xs font-medium rounded-md hover:bg-[#F7F6F3] active:scale-[0.98] transition-all"
-            >
-              Read Operating Steps ↓
-            </Link>
-          </div>
-        </section>
-
-        {/* Faux-OS Window Chrome: Workflow Pipeline Preview */}
-        <section className="border border-[#EAEAEA] rounded-xl bg-white overflow-hidden">
-          {/* OS Window Top Bar */}
-          <div className="px-4 py-3 bg-[#FBFBFA] border-b border-[#EAEAEA] flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#EAEAEA]"></span>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#EAEAEA]"></span>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#EAEAEA]"></span>
-              <span className="text-[11px] font-mono text-[#787774] ml-2">pipeline.matrix.overview</span>
-            </div>
-            <span className="text-[10px] font-mono text-[#787774]">STATUS: SYNCHRONIZED</span>
-          </div>
-
-          {/* Asymmetrical Bento Grid */}
-          <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="space-y-2 border-l-2 border-[#111111] pl-3">
-              <span className="font-mono text-xs text-[#787774]">01 / CRITERIA</span>
-              <h3 className="text-sm font-semibold text-[#111111]">Job Position</h3>
-              <p className="text-xs text-[#787774] leading-relaxed">
-                Gemini parses raw job text into structured, weighted requirements.
-              </p>
+    <ErrorBoundary fallbackTitle="User Guide Error">
+      <main className="min-h-screen bg-slate-100 text-slate-900 font-sans pb-16">
+        <div className="max-w-[1400px] mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+          
+          {/* Header Card (Matching Dashboard & Job Positions Navigation) */}
+          <header className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <Link href="/dashboard" className="flex items-center">
+                <img
+                  src="/logo.png"
+                  alt="Evidently"
+                  className="h-8 sm:h-9 w-auto object-contain"
+                />
+              </Link>
+              <div className="hidden xl:flex items-center gap-2 pl-3.5 border-l border-slate-200">
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
+                  v2.0
+                </span>
+                <p className="text-xs font-medium text-slate-500 whitespace-nowrap">
+                  Operating guide, system architecture, & evaluation protocols
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-2 border-l-2 border-[#EAEAEA] pl-3">
-              <span className="font-mono text-xs text-[#787774]">02 / INGESTION</span>
-              <h3 className="text-sm font-semibold text-[#111111]">Batch Upload</h3>
-              <p className="text-xs text-[#787774] leading-relaxed">
-                Multi-format resume parsing and 768-dimensional vectorization.
-              </p>
-            </div>
-
-            <div className="space-y-2 border-l-2 border-[#EAEAEA] pl-3">
-              <span className="font-mono text-xs text-[#787774]">03 / MATCHING</span>
-              <h3 className="text-sm font-semibold text-[#111111]">AI Evaluation</h3>
-              <p className="text-xs text-[#787774] leading-relaxed">
-                pgvector cosine distance + generative proof verification.
-              </p>
-            </div>
-
-            <div className="space-y-2 border-l-2 border-[#EAEAEA] pl-3">
-              <span className="font-mono text-xs text-[#787774]">04 / AUDITING</span>
-              <h3 className="text-sm font-semibold text-[#111111]">Candidate Dossier</h3>
-              <p className="text-xs text-[#787774] leading-relaxed">
-                Verifiable quote citations, skill gap tags, and interview prompts.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Step-by-Step Operating Protocol (Bento Architecture) */}
-        <section id="protocol" className="space-y-10">
-          <div className="border-b border-[#EAEAEA] pb-4 flex items-end justify-between">
-            <div>
-              <span className="text-[10px] uppercase tracking-[0.05em] text-[#787774] font-mono">
-                PROCEDURAL WORKFLOW
-              </span>
-              <h2 className="font-serif text-2xl sm:text-3xl text-[#111111] tracking-tight mt-1">
-                Step-by-step operating execution
-              </h2>
-            </div>
-            <span className="font-mono text-xs text-[#787774] hidden sm:block">
-              4 SEQUENTIAL PHASES
-            </span>
-          </div>
-
-          <div className="space-y-8">
-            {steps.map((step) => (
-              <article
-                key={step.index}
-                className="border border-[#EAEAEA] rounded-xl bg-white p-6 sm:p-8 space-y-6 hover:border-[#111111]/30 transition-colors"
+            {/* Navigation Pills */}
+            <nav className="flex items-center gap-1 sm:gap-1.5 bg-slate-100 p-1.5 rounded-full border border-slate-200/80 font-medium text-xs flex-shrink-0">
+              <Link
+                href="/dashboard"
+                className="px-3 sm:px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition whitespace-nowrap"
               >
-                {/* Header of Step Card */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#EAEAEA] pb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-sm font-bold text-[#111111] bg-[#F7F6F3] border border-[#EAEAEA] px-2.5 py-0.5 rounded">
-                      {step.index}
-                    </span>
-                    <span
-                      className={`text-[10px] uppercase tracking-[0.05em] px-2 py-0.5 rounded-full font-medium ${step.tagStyle}`}
-                    >
-                      {step.tag}
-                    </span>
-                    <h3 className="text-base font-semibold text-[#111111]">
-                      {step.title}
-                    </h3>
-                  </div>
+                Candidate Matrix
+              </Link>
+              <Link
+                href="/job-descriptions"
+                className="px-3 sm:px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition whitespace-nowrap"
+              >
+                Job Positions
+              </Link>
+              <Link
+                href="/"
+                className="px-3 sm:px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition whitespace-nowrap"
+              >
+                Batch Upload
+              </Link>
+              <Link
+                href="/how-to-use"
+                className="px-4 sm:px-5 py-2 rounded-full bg-slate-900 text-white font-semibold shadow-sm transition whitespace-nowrap"
+              >
+                How to Use
+              </Link>
+            </nav>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-[#787774]">Shortcut:</span>
-                    <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded border border-[#EAEAEA] bg-[#F7F6F3] text-[#2F3437]">
-                      {step.shortcut}
-                    </kbd>
-                  </div>
-                </div>
+            {/* Quick Action Button */}
+            <div className="flex items-center gap-2">
+              <Link
+                href="/dashboard"
+                className="px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition shadow-sm flex items-center gap-1.5"
+              >
+                <Sparkle weight="fill" className="w-3.5 h-3.5" />
+                <span>Open Matrix</span>
+              </Link>
+            </div>
+          </header>
 
-                {/* Body Text */}
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-[#111111]">
-                    {step.summary}
-                  </p>
-                  <p className="text-xs text-[#787774] leading-relaxed">
-                    {step.description}
-                  </p>
-                </div>
+          {/* Hero / Overview Card */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#E1F3FE] text-[#1F6C9F] border border-[#C6E7FD] text-xs font-semibold">
+                System Guide
+              </span>
+              <span className="text-xs text-slate-400 font-medium">Standard Operating Protocol</span>
+            </div>
 
-                {/* Sub-points Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                  {step.points.map((pt, pIdx) => (
-                    <div
-                      key={pIdx}
-                      className="border border-[#EAEAEA] rounded-lg p-3.5 bg-[#FBFBFA] space-y-1"
-                    >
-                      <span className="font-mono text-[10px] text-[#787774] block">
-                        Phase {step.index}.{pIdx + 1}
-                      </span>
-                      <h4 className="text-xs font-semibold text-[#111111]">
-                        {pt.label}
-                      </h4>
-                      <p className="text-[11px] text-[#787774] leading-relaxed">
-                        {pt.detail}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Card Action Footnote */}
-                <div className="pt-2 flex items-center justify-between border-t border-[#EAEAEA]">
-                  <span className="text-[11px] text-[#787774]">
-                    Ready to execute?
-                  </span>
-                  <Link
-                    href={step.actions[0].href}
-                    className="text-xs font-medium text-[#111111] hover:underline flex items-center gap-1"
-                  >
-                    <span>{step.actions[0].label}</span>
-                    <span>→</span>
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* Technical Architecture: Dual-Layer Scoring */}
-        <section className="space-y-6">
-          <div className="border-b border-[#EAEAEA] pb-4">
-            <span className="text-[10px] uppercase tracking-[0.05em] text-[#787774] font-mono">
-              MATHEMATICAL SPECIFICATION
-            </span>
-            <h2 className="font-serif text-2xl sm:text-3xl text-[#111111] tracking-tight mt-1">
-              Scoring logic & evidence thresholds
-            </h2>
-            <p className="text-xs text-[#787774] mt-1">
-              Deterministic evaluation standards with citation backing
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Vector Space */}
-            <div className="border border-[#EAEAEA] rounded-xl bg-white p-6 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase tracking-[0.05em] font-mono text-[#787774]">
-                  LAYER 01
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#E1F3FE] text-[#1F6C9F] font-mono">
-                  pgvector
-                </span>
-              </div>
-              <h3 className="text-sm font-semibold text-[#111111]">
-                768-Dimensional Cosine Space
-              </h3>
-              <p className="text-xs text-[#787774] leading-relaxed">
-                Full-text representations of candidate competency profiles and job specifications 
-                are transformed into 768-dimensional floating-point embeddings. Cosine distance 
-                computations rank global semantic relevance prior to granular verification.
+            <div className="space-y-2">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                A methodical approach to objective candidate evaluation.
+              </h2>
+              <p className="text-sm text-slate-500 font-medium max-w-3xl leading-relaxed">
+                Evidently structures talent acquisition into an auditable, verifiable pipeline:
+                decomposing job requirements into semantic vectors, batch processing multi-format resumes,
+                extracting grounded proof citations, and generating tailored interview questions without recruiter bias.
               </p>
-              <div className="border border-[#EAEAEA] rounded bg-[#FBFBFA] p-3 font-mono text-[11px] text-[#111111]">
-                sim(A, B) = cos(θ) = (A · B) / (||A|| ||B||)
-              </div>
             </div>
 
-            {/* Generative Reasoning */}
-            <div className="border border-[#EAEAEA] rounded-xl bg-white p-6 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase tracking-[0.05em] font-mono text-[#787774]">
-                  LAYER 02
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#EDF3EC] text-[#346538] font-mono">
-                  Gemini 1.5
-                </span>
+            {/* Quick Stats Bento Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-slate-100">
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-1">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-bold">Phase 01</span>
+                <h4 className="text-sm font-bold text-slate-900">Define Position</h4>
+                <p className="text-xs text-slate-500">Decompose unstructured text into weighted requirements.</p>
               </div>
-              <h3 className="text-sm font-semibold text-[#111111]">
-                Requirement Evidence Audit
-              </h3>
-              <p className="text-xs text-[#787774] leading-relaxed">
-                The model audits candidate records against each requirement independently. 
-                Scores require textual citation extracted directly from the resume text. 
-                Deficits are flagged as Missing, Partial, or Unproven.
-              </p>
-              <div className="border border-[#EAEAEA] rounded bg-[#FBFBFA] p-3 font-mono text-[11px] text-[#111111]">
-                Score = ∑ (Score_i × Weight_i) / ∑ Weight_i
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-1">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-bold">Phase 02</span>
+                <h4 className="text-sm font-bold text-slate-900">Batch Ingest</h4>
+                <p className="text-xs text-slate-500">PDF/DOCX extraction & 768d vectorization.</p>
+              </div>
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-1">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-bold">Phase 03</span>
+                <h4 className="text-sm font-bold text-slate-900">Evaluate & Mask</h4>
+                <p className="text-xs text-slate-500">Cosine similarity matching + PII blind mode.</p>
+              </div>
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-1">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-bold">Phase 04</span>
+                <h4 className="text-sm font-bold text-slate-900">Audit & Probe</h4>
+                <p className="text-xs text-slate-500">Grounded quote citations & targeted interview questions.</p>
               </div>
             </div>
           </div>
 
-          {/* Calibrated Brackets */}
-          <div className="border border-[#EAEAEA] rounded-xl bg-white p-6 space-y-4">
-            <h4 className="text-xs font-semibold uppercase tracking-[0.05em] text-[#111111]">
-              Score Classification Matrix
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="border-l-2 border-[#346538] pl-3 space-y-1">
-                <span className="font-mono text-xs font-bold text-[#346538]">85% — 100%</span>
-                <h5 className="text-xs font-semibold text-[#111111]">Qualified Shortlist</h5>
-                <p className="text-[11px] text-[#787774] leading-relaxed">
-                  Direct verifiable evidence for all essential criteria. Recommended for interview.
-                </p>
+          {/* Section: 4 Operating Steps */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between px-2">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Step-by-Step Operating Protocol</h2>
+                <p className="text-xs text-slate-500 font-medium">Follow this sequence to set up, ingest, and screen candidates</p>
               </div>
-
-              <div className="border-l-2 border-[#956400] pl-3 space-y-1">
-                <span className="font-mono text-xs font-bold text-[#956400]">65% — 84%</span>
-                <h5 className="text-xs font-semibold text-[#111111]">Review Required</h5>
-                <p className="text-[11px] text-[#787774] leading-relaxed">
-                  Demonstrates core capabilities with documented partial skill gaps in secondary areas.
-                </p>
-              </div>
-
-              <div className="border-l-2 border-[#9F2F2D] pl-3 space-y-1">
-                <span className="font-mono text-xs font-bold text-[#9F2F2D]">&lt; 65%</span>
-                <h5 className="text-xs font-semibold text-[#111111]">Unqualified</h5>
-                <p className="text-[11px] text-[#787774] leading-relaxed">
-                  Missing primary qualifications or lacking evidence within submitted resume files.
-                </p>
-              </div>
+              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-slate-200 text-slate-700">
+                4 Phases
+              </span>
             </div>
-          </div>
-        </section>
 
-        {/* Accordion FAQ (Stripped Container, Minimalist Borders, Sharp + / -) */}
-        <section className="space-y-6">
-          <div className="border-b border-[#EAEAEA] pb-4">
-            <span className="text-[10px] uppercase tracking-[0.05em] text-[#787774] font-mono">
-              INQUIRIES & RESOLUTIONS
-            </span>
-            <h2 className="font-serif text-2xl sm:text-3xl text-[#111111] tracking-tight mt-1">
-              Frequently asked questions
-            </h2>
-          </div>
-
-          <div className="divide-y divide-[#EAEAEA] border-t border-b border-[#EAEAEA]">
-            {faqs.map((faq, fIdx) => (
-              <div key={fIdx} className="py-4">
-                <button
-                  type="button"
-                  onClick={() => toggleFaq(fIdx)}
-                  className="w-full text-left flex items-center justify-between gap-4 group cursor-pointer"
+            <div className="space-y-6">
+              {steps.map((step) => (
+                <div
+                  key={step.index}
+                  className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6 hover:border-teal-500/40 transition-all"
                 >
-                  <span className="text-sm font-medium text-[#111111] group-hover:text-[#787774] transition-colors">
-                    {faq.q}
-                  </span>
-                  <span className="font-mono text-base text-[#787774] w-5 text-right shrink-0">
-                    {openFaq === fIdx ? "−" : "+"}
-                  </span>
-                </button>
-                {openFaq === fIdx && (
-                  <div className="pt-3 pr-8 text-xs text-[#787774] leading-relaxed">
-                    {faq.a}
+                  {/* Step Card Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-slate-900 text-white font-bold text-xs flex items-center justify-center shadow-sm">
+                        {step.index}
+                      </div>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${step.tagStyle}`}>
+                        {step.tag}
+                      </span>
+                      <h3 className="text-base font-bold text-slate-900">
+                        {step.title}
+                      </h3>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400 font-medium">Shortcut:</span>
+                      <kbd className="px-2 py-0.5 text-xs font-mono rounded bg-slate-100 border border-slate-200 text-slate-700 font-semibold">
+                        {step.shortcut}
+                      </kbd>
+                    </div>
                   </div>
-                )}
+
+                  {/* Summary & Description */}
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-slate-900">
+                      {step.summary}
+                    </p>
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                      {step.description}
+                    </p>
+                  </div>
+
+                  {/* 3 Sub-phase detail cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {step.points.map((pt, pIdx) => (
+                      <div
+                        key={pIdx}
+                        className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-1.5"
+                      >
+                        <span className="text-[10px] font-mono text-slate-400 font-bold uppercase">
+                          Phase {step.index}.{pIdx + 1}
+                        </span>
+                        <h4 className="text-xs font-bold text-slate-900">
+                          {pt.label}
+                        </h4>
+                        <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                          {pt.detail}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Step Footer with Action Link */}
+                  <div className="pt-2 flex items-center justify-between border-t border-slate-100 text-xs">
+                    <span className="text-slate-400 font-medium">Ready to execute?</span>
+                    <Link
+                      href={step.actionHref}
+                      className="px-4 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shadow-sm flex items-center gap-1.5"
+                    >
+                      <span>{step.actionLabel}</span>
+                      <ArrowRight weight="bold" className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Section: Technical Specifications & Fit Tier Standards */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            {/* Left 7 Cols: Dual-Layer Scoring Logic */}
+            <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
+              <div className="border-b border-slate-100 pb-4 space-y-1">
+                <span className="text-[10px] uppercase tracking-wider text-teal-700 font-bold bg-teal-50 border border-teal-100 px-2.5 py-0.5 rounded-full">
+                  Mathematical Framework
+                </span>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Dual-Stage Scoring Architecture
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Deterministic evaluation standards combining vector similarity with grounded LLM reasoning
+                </p>
               </div>
-            ))}
-          </div>
-        </section>
 
-        {/* Terminal Callout Box */}
-        <section className="border border-[#EAEAEA] rounded-xl bg-white p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-          <div className="space-y-1">
-            <h3 className="text-sm font-semibold text-[#111111]">
-              Initialize evaluation workflow
-            </h3>
-            <p className="text-xs text-[#787774]">
-              Start by uploading candidate resumes or defining requirement criteria.
-            </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Layer 1 */}
+                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-slate-400">LAYER 01</span>
+                    <span className="px-2 py-0.5 rounded-full bg-[#E1F3FE] text-[#1F6C9F] text-xs font-semibold">
+                      Vector Space
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900">768-Dim Cosine Distance</h4>
+                  <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                    Resume items and requirement statements are projected into 768-dimensional space.
+                    Cosine similarity calculates semantic proximity before qualitative verification.
+                  </p>
+                  <div className="font-mono text-[11px] text-slate-700 bg-white p-2.5 rounded-xl border border-slate-200">
+                    cos(θ) = (A · B) / (||A|| ||B||)
+                  </div>
+                </div>
+
+                {/* Layer 2 */}
+                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-slate-400">LAYER 02</span>
+                    <span className="px-2 py-0.5 rounded-full bg-[#EDF3EC] text-[#346538] text-xs font-semibold">
+                      Evidence Audit
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900">Proof Citation Verification</h4>
+                  <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                    The engine audits candidate claims requirement-by-requirement, extracting direct
+                    quotes from work experience bullets to prevent hallucination.
+                  </p>
+                  <div className="font-mono text-[11px] text-slate-700 bg-white p-2.5 rounded-xl border border-slate-200">
+                    Score = ∑(S_i × W_i) / ∑W_i
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right 5 Cols: Score Classification Standards */}
+            <div className="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-5">
+              <div className="border-b border-slate-100 pb-3 space-y-1">
+                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+                  Score Calibration
+                </span>
+                <h3 className="text-base font-bold text-slate-900">
+                  Fit Tier Classification Matrix
+                </h3>
+              </div>
+
+              <div className="space-y-3">
+                {/* Tier 1 */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#EDF3EC] text-[#346538] border border-[#D3E5D2] text-xs font-semibold flex-shrink-0 mt-0.5">
+                    ≥ 80%
+                  </span>
+                  <div>
+                    <h5 className="text-xs font-bold text-slate-900">Strong Fit</h5>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Demonstrates comprehensive evidence across all required competencies and multiple preferred skills.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Tier 2 */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#FBF3DB] text-[#8F6B00] border border-[#F5E5B8] text-xs font-semibold flex-shrink-0 mt-0.5">
+                    50% – 79%
+                  </span>
+                  <div>
+                    <h5 className="text-xs font-bold text-slate-900">Moderate Fit</h5>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Covers majority of baseline requirements with minor partial gaps or adjacent technologies.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Tier 3 */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#FDEBEC] text-[#9F2F2D] border border-[#F9D2D5] text-xs font-semibold flex-shrink-0 mt-0.5">
+                    &lt; 50%
+                  </span>
+                  <div>
+                    <h5 className="text-xs font-bold text-slate-900">Gap Risk</h5>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Significant missing prerequisites or unverified skill claims with absent work experience citations.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="px-4 py-2 bg-[#111111] text-white text-xs font-medium rounded-md hover:bg-[#333333] active:scale-[0.98] transition-all"
-            >
-              Batch Upload
-            </Link>
-            <Link
-              href="/dashboard"
-              className="px-4 py-2 border border-[#EAEAEA] text-[#111111] text-xs font-medium rounded-md hover:bg-[#F7F6F3] active:scale-[0.98] transition-all"
-            >
-              Open Matrix
-            </Link>
-          </div>
-        </section>
+          {/* Section: Frequently Asked Questions (Interactive Accordion) */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
+            <div className="border-b border-slate-100 pb-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl bg-teal-500/10 text-teal-600 flex items-center justify-center font-bold text-xs">
+                  <Question weight="fill" className="w-4 h-4" />
+                </div>
+                <h2 className="text-lg font-bold text-slate-900">Frequently Asked Questions</h2>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Common questions about candidate matching, PII protection, and file processing
+              </p>
+            </div>
 
-      </div>
-    </main>
+            <div className="space-y-3">
+              {faqs.map((faq, idx) => {
+                const isOpen = openFaq === idx;
+                return (
+                  <div
+                    key={idx}
+                    className={`rounded-2xl border transition-all ${
+                      isOpen
+                        ? "bg-slate-50 border-teal-500/40 shadow-xs"
+                        : "bg-white border-slate-200/80 hover:border-slate-300"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleFaq(idx)}
+                      className="w-full text-left p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer"
+                    >
+                      <span className="text-xs sm:text-sm font-bold text-slate-900">
+                        {faq.q}
+                      </span>
+                      <CaretDown
+                        weight="fill"
+                        className={`w-4 h-4 text-slate-400 transition-transform duration-200 flex-shrink-0 ${
+                          isOpen ? "rotate-180 text-teal-600" : ""
+                        }`}
+                      />
+                    </button>
+                    {isOpen && (
+                      <div className="px-4 sm:px-5 pb-4 text-xs text-slate-500 font-medium leading-relaxed border-t border-slate-200/40 pt-3">
+                        {faq.a}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Bottom Call to Action Card */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-bold text-slate-900">
+                Ready to evaluate candidates against a position?
+              </h3>
+              <p className="text-xs text-slate-500 font-medium max-w-xl">
+                Navigate to the Candidate Matrix to view score rankings and skill gaps, or upload fresh resumes to your pool.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <Link
+                href="/dashboard"
+                className="px-5 py-2.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-sm flex items-center gap-1.5"
+              >
+                <span>Candidate Matrix</span>
+                <ArrowRight weight="bold" className="w-3.5 h-3.5" />
+              </Link>
+              <Link
+                href="/"
+                className="px-5 py-2.5 rounded-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold transition shadow-sm"
+              >
+                Batch Upload
+              </Link>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </ErrorBoundary>
   );
 }

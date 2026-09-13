@@ -1,4 +1,4 @@
-# 🚀 AI-Powered Resume Analyzer & Interview Assistant
+# 🚀 Evidently — AI-Powered Resume Analyzer & Interview Assistant
 
 An enterprise-grade, privacy-first Applicant Tracking System (ATS) and candidate evaluation matrix powered by **Next.js 14 App Router**, **TypeScript**, **Prisma ORM**, **PostgreSQL with pgvector**, and **Google Gemini AI**.
 

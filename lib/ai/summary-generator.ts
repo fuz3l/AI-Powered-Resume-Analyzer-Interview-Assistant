@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { wrapInSafetyBoundary } from "../security/sanitizer";
+import { isGroqConfigured, callGroqChat } from "../groq/client";
 
 /**
  * Generates a 3-4 line JD-independent recruiter summary synthesizing:
@@ -11,8 +12,6 @@ export async function generateGeneralSummary(
   parsedJson: any,
   rawText: string
 ): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-
   const experienceCount = Array.isArray(parsedJson?.workExperience) ? parsedJson.workExperience.length : 0;
   const skillsList = Array.isArray(parsedJson?.skills) ? parsedJson.skills.join(", ") : "software development";
   
@@ -25,17 +24,8 @@ export async function generateGeneralSummary(
 
   const fallbackSummary = `${fallbackSeniority} candidate demonstrating primary technical proficiency across ${skillsList.slice(0, 80)}. Key strengths include practical software development experience, component design, and problem solving. Displays a consistent focus on full-lifecycle application engineering across recent roles.`;
 
-  if (!apiKey || apiKey === "your_gemini_api_key_here" || apiKey.trim() === "") {
-    return fallbackSummary;
-  }
-
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || "gemini-flash-latest" });
-
-    const safeInputText = wrapInSafetyBoundary(rawText);
-    const prompt = `
-You are an executive tech recruiter. Write a concise, 3-4 sentence professional candidate summary based on the resume data below.
+  const safeInputText = wrapInSafetyBoundary(rawText);
+  const prompt = `You are an executive tech recruiter. Write a concise, 3-4 sentence professional candidate summary based on the resume data below.
 Requirements for the summary:
 1. Infer and state candidate's seniority level (Junior / Mid-level / Senior / Lead).
 2. Highlight 2-3 standout technical or domain strengths.
@@ -45,11 +35,39 @@ Do NOT just list facts; synthesize them into a fluent executive recruiter summar
 ${safeInputText}
 `;
 
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim() || fallbackSummary;
-  } catch (err) {
-    return fallbackSummary;
+  // 1. Try Groq Cloud if configured
+  if (isGroqConfigured()) {
+    try {
+      const summary = await callGroqChat({
+        messages: [
+          { role: "system", content: "You are an executive tech recruiter synthesizing candidate resumes into executive summary paragraphs." },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.3,
+        maxTokens: 250,
+      });
+      if (summary && summary.length > 20) {
+        return summary.trim();
+      }
+    } catch (groqErr) {
+      console.warn("Groq general summary failed, trying Gemini fallback:", groqErr);
+    }
   }
+
+  // 2. Try Gemini AI if configured
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (apiKey && apiKey !== "your_gemini_api_key_here" && apiKey.trim() !== "" && !apiKey.startsWith("AQ.")) {
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || "gemini-flash-latest" });
+      const result = await model.generateContent(prompt);
+      return result.response.text().trim() || fallbackSummary;
+    } catch (err) {
+      console.warn("Gemini general summary failed, using fallback:", err);
+    }
+  }
+
+  return fallbackSummary;
 }
 
 /**
@@ -62,8 +80,6 @@ export async function generateContextualSummary(
   requirementScores: any[],
   overallScore: number
 ): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-
   const topMatches = requirementScores
     .filter((r) => r.similarityScore >= 0.7)
     .map((r) => r.requirementText)
@@ -84,23 +100,14 @@ export async function generateContextualSummary(
     fallbackContextual += `Presents solid coverage across essential requirements for this role.`;
   }
 
-  if (!apiKey || apiKey === "your_gemini_api_key_here" || apiKey.trim() === "") {
-    return fallbackContextual;
-  }
+  const reqBreakdown = requirementScores
+    .map(
+      (r) =>
+        `- Requirement [${r.priority}]: "${r.requirementText}" | Score: ${(r.similarityScore * 100).toFixed(1)}% | Evidence: "${r.evidenceText || "None"}"`
+    )
+    .join("\n");
 
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || "gemini-flash-latest" });
-
-    const reqBreakdown = requirementScores
-      .map(
-        (r) =>
-          `- Requirement [${r.priority}]: "${r.requirementText}" | Score: ${(r.similarityScore * 100).toFixed(1)}% | Evidence: "${r.evidenceText || "None"}"`
-      )
-      .join("\n");
-
-    const prompt = `
-You are an executive hiring manager. Write a 2-3 sentence role-fit synthesis explaining WHY the candidate received an overall match score of ${overallScore}% for the position of "${jobTitle}".
+  const prompt = `You are an executive hiring manager. Write a 2-3 sentence role-fit synthesis explaining WHY the candidate received an overall match score of ${overallScore}% for the position of "${jobTitle}".
 CRITICAL INSTRUCTION:
 Always use the exact placeholder "{{CANDIDATE_NAME}}" whenever referring to the candidate by name. Never use any personal names or 'Candidate X'.
 
@@ -112,10 +119,38 @@ REQUIREMENT MATCH BREAKDOWN:
 ${reqBreakdown}
 `;
 
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim() || fallbackContextual;
-  } catch (err) {
-    console.warn("Contextual summary generation failed, using fallback:", err);
-    return fallbackContextual;
+  // 1. Try Groq Cloud if configured
+  if (isGroqConfigured()) {
+    try {
+      const summary = await callGroqChat({
+        messages: [
+          { role: "system", content: "You are an executive hiring manager writing a concise role-fit synthesis." },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.3,
+        maxTokens: 250,
+      });
+      if (summary && summary.length > 20) {
+        return summary.trim();
+      }
+    } catch (groqErr) {
+      console.warn("Groq contextual summary failed, trying Gemini fallback:", groqErr);
+    }
   }
+
+  // 2. Try Gemini AI if configured
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (apiKey && apiKey !== "your_gemini_api_key_here" && apiKey.trim() !== "" && !apiKey.startsWith("AQ.")) {
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || "gemini-flash-latest" });
+      const result = await model.generateContent(prompt);
+      return result.response.text().trim() || fallbackContextual;
+    } catch (err) {
+      console.warn("Contextual summary generation failed, using fallback:", err);
+    }
+  }
+
+  return fallbackContextual;
 }
+

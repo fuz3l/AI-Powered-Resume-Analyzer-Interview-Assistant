@@ -4,23 +4,23 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
-  ShieldAlert,
-  AlertTriangle,
+  ShieldWarning,
+  Warning,
   FileText,
   User,
-  Mail,
+  Envelope,
   Briefcase,
   GraduationCap,
-  Award,
+  Trophy,
   Code,
   X,
   Check,
   Target,
-  Sparkles,
-  Zap,
+  Sparkle,
+  Lightning,
   Eye,
-  EyeOff,
-} from "lucide-react";
+  EyeSlash,
+} from "@phosphor-icons/react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 interface RequirementScore {
@@ -131,7 +131,8 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
     return (
       <div className="min-h-screen bg-[#f1f5f9] text-slate-900 flex items-center justify-center font-sans text-xs">
         <div className="space-y-4 text-center flex flex-col items-center">
-          <img src="/loading.gif" alt="Loading..." className="w-20 h-20" />
+          <img src="/logo.png" alt="Evidently" className="h-8 w-auto object-contain" />
+          <img src="/loading.gif" alt="Loading..." className="w-16 h-16" />
           <p className="text-slate-500 font-medium">Loading candidate evidence matrix...</p>
         </div>
       </div>
@@ -142,7 +143,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
     return (
       <main className="min-h-screen bg-[#f1f5f9] text-slate-900 p-8 flex items-center justify-center font-sans">
         <div className="max-w-md w-full bg-white border border-rose-200 rounded-3xl p-8 space-y-4 text-center shadow-md">
-          <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
+          <Warning weight="fill" className="w-10 h-10 text-rose-500 mx-auto" />
           <h2 className="text-base font-bold text-slate-900">Profile Loading Exception</h2>
           <p className="text-xs text-slate-500">{error || "Candidate record not found."}</p>
           <Link
@@ -210,10 +211,21 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
             <div className="flex items-center gap-4">
               <Link
                 href="/dashboard"
-                className="px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs transition"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs transition"
               >
-                ← Dashboard
+                <ArrowLeft weight="bold" className="w-3.5 h-3.5" />
+                <span>Dashboard</span>
               </Link>
+
+              <div className="hidden sm:block border-l border-slate-200 pl-4">
+                <Link href="/dashboard" className="flex items-center">
+                  <img
+                    src="/logo.png"
+                    alt="Evidently"
+                    className="h-6 sm:h-7 w-auto object-contain"
+                  />
+                </Link>
+              </div>
 
               <div>
                 <div className="flex items-center gap-3">
@@ -232,7 +244,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                       onClick={() => setShowSecurityModal(true)}
                       className="px-3 py-1 rounded-full bg-rose-500 text-white text-xs font-bold shadow-sm hover:bg-rose-600 transition flex items-center gap-1.5 cursor-pointer"
                     >
-                      <ShieldAlert className="w-3.5 h-3.5" />
+                      <ShieldWarning weight="fill" className="w-3.5 h-3.5" />
                       Flagged Injection ({candidate.suspiciousContents.length})
                     </button>
                   )}
@@ -253,7 +265,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                     : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
                 }`}
               >
-                {blindMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                {blindMode ? <EyeSlash weight="fill" className="w-3.5 h-3.5" /> : <Eye weight="fill" className="w-3.5 h-3.5" />}
                 <span>Blind Screening {blindMode ? "ON" : "OFF"}</span>
               </button>
 
@@ -277,7 +289,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
           {candidate.latestMatch?.contextualSummary && (
             <div className="bg-amber-100/90 border border-amber-300 rounded-3xl p-6 text-amber-950 space-y-2 shadow-sm">
               <div className="flex items-center gap-2 font-bold text-xs text-orange-600 uppercase tracking-wider">
-                <Sparkles className="w-4 h-4 fill-orange-500" />
+                <Sparkle weight="fill" className="w-4 h-4 fill-orange-500" />
                 Role-Fit AI Insight Synthesis
               </div>
               <p className="text-xs leading-relaxed font-medium">
@@ -367,7 +379,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/80 space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-                      <Check className="w-4 h-4 text-emerald-500" />
+                      <Check weight="bold" className="w-4 h-4 text-emerald-500" />
                       Matched Resume Evidence
                     </h3>
                     <span className="font-mono text-xs font-extrabold text-blue-600">
@@ -512,14 +524,14 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
             <div className="bg-white border border-rose-200 rounded-3xl max-w-xl w-full p-6 space-y-4 text-xs shadow-2xl">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <span className="font-bold text-rose-600 text-sm flex items-center gap-2">
-                  <ShieldAlert className="w-5 h-5" />
+                  <ShieldWarning weight="fill" className="w-5 h-5" />
                   Prompt Injection Analysis Report
                 </span>
                 <button
                   onClick={() => setShowSecurityModal(false)}
                   className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
                 >
-                  <X className="w-5 h-5" />
+                  <X weight="bold" className="w-5 h-5" />
                 </button>
               </div>
 

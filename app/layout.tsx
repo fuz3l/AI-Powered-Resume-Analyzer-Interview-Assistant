@@ -3,8 +3,13 @@ import "./globals.css";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Candidate Matrix — AI Candidate Evaluation Engine",
-  description: "Enterprise candidate matching matrix powered by Gemini AI and PostgreSQL pgvector",
+  title: "Evidently — AI Candidate Evaluation Engine",
+  description: "Enterprise candidate evaluation engine powered by Gemini AI and Vector Embeddings",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -14,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased bg-[#FBFBFA] text-[#111111] min-h-screen font-sans flex flex-col justify-between selection:bg-[#E1F3FE] selection:text-[#1F6C9F]">
+      <body className="antialiased bg-slate-100 text-slate-900 min-h-screen font-sans flex flex-col justify-between selection:bg-teal-100 selection:text-teal-900">
         <div className="flex-1">
           {children}
         </div>

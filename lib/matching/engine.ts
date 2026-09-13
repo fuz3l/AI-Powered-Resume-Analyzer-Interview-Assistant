@@ -108,6 +108,9 @@ export function extractResumeItems(parsedJson: any, rawText: string): { text: st
   return items;
 }
 
+// In-memory cache for job requirement embeddings: `${jobDescriptionId}:${requirementText}` -> embedding vector
+const REQUIREMENT_EMBEDDING_CACHE = new Map<string, number[]>();
+
 /**
  * Calculates vector cosine similarity matching between a Candidate and a Job Description.
  */
@@ -129,20 +132,21 @@ export async function calculateMatchScore(
     throw new Error(`Job Description with ID ${jobDescriptionId} not found.`);
   }
 
-  // Step 1: Extract and Embed Candidate Resume Items (using anonymized data for structural bias reduction)
+  // Step 1: Extract and Embed Candidate Resume Items concurrently
   const targetJson = candidate.anonymizedJson || candidate.parsedJson;
   const targetText = candidate.anonymizedText || candidate.rawText;
   const rawResumeItems = extractResumeItems(targetJson, targetText);
-  const embeddedCandidateItems: CandidateResumeItem[] = [];
 
-  for (const item of rawResumeItems) {
-    const embedding = await getEmbedding(item.text);
-    embeddedCandidateItems.push({
-      text: item.text,
-      sourceSpan: item.sourceSpan,
-      embedding,
-    });
-  }
+  const embeddedCandidateItems: CandidateResumeItem[] = await Promise.all(
+    rawResumeItems.map(async (item) => {
+      const embedding = await getEmbedding(item.text);
+      return {
+        text: item.text,
+        sourceSpan: item.sourceSpan,
+        embedding,
+      };
+    })
+  );
 
   // Step 2: Fetch / Generate Embeddings for Job Requirements
   const rawReqList = jobDescription.requirementsList.length > 0
@@ -179,31 +183,43 @@ export async function calculateMatchScore(
   };
 
   const requirementsList = rawReqList.filter((r: any) => !isExcludedItem(r));
+  const candidateDim = embeddedCandidateItems[0]?.embedding?.length || 768;
+
+  // Concurrently resolve / cache embeddings for all job requirements
+  const requirementsWithEmbeddings = await Promise.all(
+    requirementsList.map(async (req: any) => {
+      const cacheKey = `${jobDescriptionId}:${req.text}`;
+      let reqEmbedding = REQUIREMENT_EMBEDDING_CACHE.get(cacheKey);
+
+      if (!reqEmbedding) {
+        if (
+          req.embeddingJson &&
+          Array.isArray(req.embeddingJson) &&
+          req.embeddingJson.length === candidateDim
+        ) {
+          reqEmbedding = req.embeddingJson as number[];
+        } else {
+          reqEmbedding = await getEmbedding(req.text);
+          if (reqEmbedding.length !== candidateDim) {
+            const { generateDeterministicFallbackEmbedding } = await import("../gemini/embeddings");
+            reqEmbedding = generateDeterministicFallbackEmbedding(req.text, candidateDim);
+          }
+        }
+        if (reqEmbedding && reqEmbedding.length > 0) {
+          REQUIREMENT_EMBEDDING_CACHE.set(cacheKey, reqEmbedding);
+        }
+      }
+
+      return { req, reqEmbedding: reqEmbedding || [] };
+    })
+  );
 
   const requirementDetails: RequirementMatchDetail[] = [];
   let totalWeightedScore = 0;
   let totalWeight = 0;
 
-  // Step 3: For each requirement, compute similarity against ALL candidate resume items
-  const candidateDim = embeddedCandidateItems[0]?.embedding?.length || 768;
-
-  for (const req of requirementsList) {
-    let reqEmbedding: number[] = [];
-    if (
-      req.embeddingJson &&
-      Array.isArray(req.embeddingJson) &&
-      req.embeddingJson.length === candidateDim
-    ) {
-      reqEmbedding = req.embeddingJson as number[];
-    } else {
-      reqEmbedding = await getEmbedding(req.text);
-      if (reqEmbedding.length !== candidateDim) {
-        // Force deterministic alignment if different embedding sources were used
-        const { generateDeterministicFallbackEmbedding } = await import("../gemini/embeddings");
-        reqEmbedding = generateDeterministicFallbackEmbedding(req.text, candidateDim);
-      }
-    }
-
+  // Step 3: For each requirement, compute similarity against candidate items (in-memory math)
+  for (const { req, reqEmbedding } of requirementsWithEmbeddings) {
     let highestScore = 0;
     let bestMatchItem = embeddedCandidateItems[0]?.text || "No direct resume match";
     let bestSourceSpan = embeddedCandidateItems[0]?.sourceSpan || "General";
@@ -242,16 +258,7 @@ export async function calculateMatchScore(
   const rawOverall = totalWeight > 0 ? (totalWeightedScore / totalWeight) * 100 : 0;
   const overallScore = Math.round(rawOverall * 10) / 10;
 
-  // Step 5: Generate JD-specific Contextual Summary with neutral {{CANDIDATE_NAME}} template token
-  const { generateContextualSummary } = await import("../ai/summary-generator");
-  const contextualSummary = await generateContextualSummary(
-    "{{CANDIDATE_NAME}}",
-    jobDescription.title,
-    requirementScoresToSummarize(requirementDetails),
-    overallScore
-  );
-
-  // Step 6: Evaluate Skill Gaps (MISSING, PARTIAL, UNPROVEN)
+  // Extract skills & experience bullets for gap evaluation
   const candidateSkills = (targetJson as any)?.skills || [];
   const workExperienceBullets: string[] = [];
   if ((targetJson as any)?.workExperience && Array.isArray((targetJson as any).workExperience)) {
@@ -262,9 +269,22 @@ export async function calculateMatchScore(
     });
   }
 
-  // Step 7: Save MatchScore, ContextualSummary, and RequirementScores in Appwrite DB
+  // Step 5: Start AI summary generation concurrently
+  const { generateContextualSummary } = await import("../ai/summary-generator");
+  const summaryPromise = generateContextualSummary(
+    "{{CANDIDATE_NAME}}",
+    jobDescription.title,
+    requirementScoresToSummarize(requirementDetails),
+    overallScore
+  );
+
+  // Step 6 & 7: Save MatchScore and all RequirementScores concurrently in Appwrite DB
   let matchScoreRecord: any = null;
+  let contextualSummary = "";
+
   try {
+    contextualSummary = await summaryPromise;
+
     matchScoreRecord = await appwriteDb.createMatchScore({
       candidateId,
       jobDescriptionId,
@@ -272,25 +292,32 @@ export async function calculateMatchScore(
       contextualSummary,
     });
 
-    for (const rd of requirementDetails) {
-      await appwriteDb.createRequirementScore({
-        matchScoreId: matchScoreRecord.id || matchScoreRecord.$id,
-        requirementText: rd.requirementText,
-        priority: rd.priority,
-        similarityScore: rd.similarityScore,
-        evidenceText: rd.evidenceText,
-        evidenceSourceSpan: rd.evidenceSourceSpan,
-      });
-    }
+    const matchId = matchScoreRecord.id || matchScoreRecord.$id;
+
+    // Concurrently persist requirement scores
+    await Promise.all(
+      requirementDetails.map((rd) =>
+        appwriteDb.createRequirementScore({
+          matchScoreId: matchId,
+          requirementText: rd.requirementText,
+          priority: rd.priority,
+          similarityScore: rd.similarityScore,
+          evidenceText: rd.evidenceText,
+          evidenceSourceSpan: rd.evidenceSourceSpan,
+        })
+      )
+    );
   } catch (dbErr) {
     console.warn("MatchScore database save warning (running in preview mode):", dbErr);
     matchScoreRecord = {
       id: `temp-match-${Date.now()}`,
     };
+    contextualSummary = contextualSummary || "Contextual summary generated.";
   }
 
   const matchId = matchScoreRecord.id || matchScoreRecord.$id;
 
+  // Step 8: Evaluate Skill Gaps & Generate Grounded Interview Questions
   const skillGaps = await evaluateSkillGaps(
     matchId,
     requirementDetails,
@@ -298,7 +325,6 @@ export async function calculateMatchScore(
     workExperienceBullets
   );
 
-  // Step 8: Generate Grounded Interview Questions
   const { generateGroundedInterviewQuestions } = await import("../ai/question-generator");
   const interviewQuestions = await generateGroundedInterviewQuestions(
     matchId,

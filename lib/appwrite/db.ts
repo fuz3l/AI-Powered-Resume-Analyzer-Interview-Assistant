@@ -168,6 +168,57 @@ export const appwriteDb = {
     }
   },
 
+  async updateCandidate(candidateId: string, data: Partial<{
+    name: string | null;
+    email: string | null;
+    rawText: string;
+    parsedJson: any;
+    anonymizedName: string | null;
+    anonymizedText: string | null;
+    anonymizedJson: any;
+    generalSummary: string | null;
+    parseConfidence: string;
+    resumeFileUrl: string | null;
+  }>) {
+    const docData: any = {};
+    if (data.name !== undefined) docData.name = data.name || "";
+    if (data.email !== undefined) docData.email = data.email || "";
+    if (data.rawText !== undefined) docData.rawText = data.rawText;
+    if (data.parsedJson !== undefined) docData.parsedJson = stringifyJsonSafe(data.parsedJson);
+    if (data.anonymizedName !== undefined) docData.anonymizedName = data.anonymizedName || "";
+    if (data.anonymizedText !== undefined) docData.anonymizedText = data.anonymizedText || "";
+    if (data.anonymizedJson !== undefined) docData.anonymizedJson = stringifyJsonSafe(data.anonymizedJson);
+    if (data.generalSummary !== undefined) docData.generalSummary = data.generalSummary || "";
+    if (data.parseConfidence !== undefined) docData.parseConfidence = data.parseConfidence || "HIGH";
+    if (data.resumeFileUrl !== undefined) docData.resumeFileUrl = data.resumeFileUrl || "";
+
+    try {
+      const { databases, config } = createAdminClient();
+      if (!config.projectId || !config.apiKey) throw new Error("No Appwrite config");
+      const doc = await databases.updateDocument(
+        config.databaseId,
+        COLLECTIONS.CANDIDATES,
+        candidateId,
+        docData
+      );
+      return {
+        id: doc.$id,
+        ...doc,
+        parsedJson: parseJsonSafe(doc.parsedJson),
+        anonymizedJson: parseJsonSafe(doc.anonymizedJson),
+      };
+    } catch (err) {
+      const existing = memoryStore.candidates.get(candidateId) || { id: candidateId, $id: candidateId };
+      const updated = {
+        ...existing,
+        ...data,
+        updatedAt: new Date().toISOString(),
+      };
+      memoryStore.candidates.set(candidateId, updated);
+      return updated;
+    }
+  },
+
   async getCandidateById(candidateId: string) {
     let candidate: any = null;
 
@@ -191,6 +242,10 @@ export const appwriteDb = {
 
     if (!candidate) return null;
 
+    const parsedJsonObj = parseJsonSafe(candidate.parsedJson);
+    const anonymizedJsonObj = parseJsonSafe(candidate.anonymizedJson);
+    const resolvedJdId = candidate.jobDescriptionId || parsedJsonObj?.jobDescriptionId || null;
+
     // Fetch related records
     const [suspiciousContents, matchScores] = await Promise.all([
       this.getSuspiciousContentsByCandidateId(candidateId),
@@ -201,6 +256,9 @@ export const appwriteDb = {
 
     return {
       ...candidate,
+      parsedJson: parsedJsonObj,
+      anonymizedJson: anonymizedJsonObj,
+      jobDescriptionId: resolvedJdId,
       suspiciousContents,
       matchScores,
       latestMatch,
@@ -216,12 +274,16 @@ export const appwriteDb = {
         COLLECTIONS.CANDIDATES,
         [Query.orderDesc("createdAt"), Query.limit(100)]
       );
-      return res.documents.map((doc) => ({
-        id: doc.$id,
-        ...doc,
-        parsedJson: parseJsonSafe(doc.parsedJson),
-        anonymizedJson: parseJsonSafe(doc.anonymizedJson),
-      }));
+      return res.documents.map((doc: any) => {
+        const parsed = parseJsonSafe(doc.parsedJson);
+        return {
+          id: doc.$id,
+          ...doc,
+          parsedJson: parsed,
+          anonymizedJson: parseJsonSafe(doc.anonymizedJson),
+          jobDescriptionId: doc.jobDescriptionId || parsed?.jobDescriptionId || null,
+        };
+      });
     } catch {
       return Array.from(memoryStore.candidates.values()).sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()

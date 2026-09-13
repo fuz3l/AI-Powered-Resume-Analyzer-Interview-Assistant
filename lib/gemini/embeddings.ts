@@ -123,7 +123,7 @@ export async function getEmbedding(text: string): Promise<number[]> {
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === "your_gemini_api_key_here" || apiKey.trim() === "") {
+  if (!apiKey || apiKey === "your_gemini_api_key_here" || apiKey.trim() === "" || apiKey.startsWith("AQ.")) {
     const fallback = generateDeterministicFallbackEmbedding(cleanText);
     EMBEDDING_CACHE.set(cleanText, fallback);
     return fallback;

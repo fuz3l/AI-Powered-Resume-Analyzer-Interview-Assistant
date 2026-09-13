@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     const existingCandidates = await appwriteDb.listCandidates();
     const anonymized = anonymizeCandidateData(existingCandidates.length + 1, parsedJson, rawTextTrimmed);
 
-    // Step 3: Candidate Persistence in Appwrite
+    // Step 3: Candidate Persistence in Appwrite (with deduplication)
     let candidateRecord: any = null;
     let savedToDb = false;
 
@@ -93,18 +93,53 @@ export async function POST(req: NextRequest) {
       const candidateEmail = parsedJson.email || null;
       const candidateName = parsedJson.name || "Unknown Candidate";
 
-      candidateRecord = await appwriteDb.createCandidate({
+      // Detect duplicate candidate — only block truly identical submissions
+      // (same raw text content OR same exact filename+name). Do NOT deduplicate
+      // by email alone — multiple distinct candidates can share the same email
+      // in bulk uploads / sample data sets.
+      const existingCandidate = existingCandidates.find((c: any) => {
+        // Exact same raw text = same document re-uploaded
+        if (c.rawText && c.rawText.trim() === rawTextTrimmed) {
+          return true;
+        }
+        // Same filename AND same name = same candidate file re-uploaded
+        if (
+          c.name &&
+          candidateName &&
+          c.name.toLowerCase().trim() === candidateName.toLowerCase().trim() &&
+          c.resumeFileUrl === filename
+        ) {
+          return true;
+        }
+        return false;
+      });
+
+      const targetJobId = (formData.get("jobDescriptionId") as string) || "";
+      const parsedWithJd = {
+        ...parsedJson,
+        jobDescriptionId: targetJobId || undefined,
+      };
+
+      const candidateData = {
         name: candidateName,
         email: candidateEmail,
         rawText: rawTextTrimmed,
-        parsedJson,
+        parsedJson: parsedWithJd,
         anonymizedName: anonymized.anonymizedName,
         anonymizedText: anonymized.anonymizedText,
         anonymizedJson: anonymized.anonymizedJson,
         generalSummary,
         parseConfidence,
         resumeFileUrl: filename,
-      });
+        jobDescriptionId: targetJobId || undefined,
+      };
+
+      if (existingCandidate) {
+        const targetId = existingCandidate.id || existingCandidate.$id;
+        candidateRecord = await appwriteDb.updateCandidate(targetId, candidateData);
+      } else {
+        candidateRecord = await appwriteDb.createCandidate(candidateData);
+      }
 
       savedToDb = true;
 
@@ -125,13 +160,22 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    // Part D: Automatically compute vector match score against active job position
+    const targetJobId = (formData.get("jobDescriptionId") as string) || "";
+
+    // Part D: Automatically compute vector match score against target job position
     let initialMatchScore = 0;
     try {
       const jds = await appwriteDb.listJobDescriptions();
-      if (jds.length > 0) {
+      const targetJd = targetJobId
+        ? jds.find((j: any) => (j.id || j.$id) === targetJobId)
+        : jds[0];
+
+      if (targetJd) {
         const { calculateMatchScore } = await import("@/lib/matching/engine");
-        const matchResult = await calculateMatchScore(candidateRecord.id || candidateRecord.$id, jds[0].id || jds[0].$id);
+        const matchResult = await calculateMatchScore(
+          candidateRecord.id || candidateRecord.$id,
+          targetJd.id || targetJd.$id
+        );
         initialMatchScore = matchResult.overallScore;
       }
     } catch (scoreErr) {

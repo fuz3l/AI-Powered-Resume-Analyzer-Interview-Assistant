@@ -136,30 +136,108 @@ function fallbackJdParser(rawText: string): ParsedJobDescriptionResult {
   return { title, requirements };
 }
 
+import { isGroqConfigured, callGroqJson } from "../groq/client";
+
 /**
- * Extracts a discrete, itemized list of requirements tagged with category and priority using Gemini AI.
+ * Extracts a discrete, itemized list of requirements tagged with category and priority using Groq or Gemini AI.
  */
 export async function parseJobDescriptionWithGemini(
   rawText: string
 ): Promise<ParsedJobDescriptionResult> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const sanitizeRequirements = (title: string, rawReqs: any[]): ParsedJobDescriptionResult => {
+    let requirements = Array.isArray(rawReqs) ? rawReqs : [];
 
-  if (!apiKey || apiKey === "your_gemini_api_key_here" || apiKey.trim() === "") {
-    return fallbackJdParser(rawText);
-  }
+    // Filter out any section headings that slipped through
+    requirements = requirements.filter(
+      (r) => r?.text && !SECTION_HEADING_REGEX.test(r.text.trim())
+    );
 
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || "gemini-flash-latest",
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: jdSchema,
-        temperature: 0.1,
-      },
+    // Ensure category is set
+    requirements = requirements.map((r) => {
+      let cat = r.category;
+      if (!cat || !["SKILL", "EXPERIENCE", "EDUCATION", "RESPONSIBILITY", "PERK_OR_CULTURE"].includes(cat)) {
+        cat = PERK_OR_CULTURE_REGEX.test(r.text) ? "PERK_OR_CULTURE" : "SKILL";
+      }
+      let priority = r.priority === "NICE_TO_HAVE" ? "NICE_TO_HAVE" : "REQUIRED";
+      if (cat === "PERK_OR_CULTURE") priority = "NICE_TO_HAVE";
+      return {
+        text: String(r.text).trim(),
+        category: cat,
+        priority,
+      };
     });
 
-    const prompt = `
+    // Ensure at least 3 genuine scoring requirements are returned
+    const scoringReqs = requirements.filter((r) => r.category !== "PERK_OR_CULTURE");
+    if (scoringReqs.length < 3) {
+      const fallbackReqs = fallbackJdParser(rawText).requirements;
+      for (const req of fallbackReqs) {
+        if (!requirements.some((r) => r.text.toLowerCase() === req.text.toLowerCase())) {
+          requirements.push(req);
+        }
+      }
+    }
+
+    return {
+      title: title || "Job Position",
+      requirements,
+    };
+  };
+
+  // 1. Try Groq Cloud if configured
+  if (isGroqConfigured()) {
+    try {
+      const systemPrompt = `You are an expert technical recruiter and ATS parser.
+Analyze the job description below and extract:
+1. The exact or inferred Job Title.
+2. A discrete list of individual items categorized into:
+   - "SKILL": technical skills, programming languages, frameworks, libraries, tools, soft skills.
+   - "EXPERIENCE": years of experience, seniority level, domain or industry background.
+   - "EDUCATION": degrees, academic background, formal certifications.
+   - "RESPONSIBILITY": day-to-day duties, expectations, role responsibilities.
+   - "PERK_OR_CULTURE": employee benefits, perks, workplace culture, celebrations, festivals, birthdays, office infrastructure, flexible hours, PTO, engagement activities — anything describing company perks rather than candidate qualifications.
+
+CRITICAL PARSING RULES:
+1. NEVER extract section headings as requirements! Ignore headers like "Experience And Qualifications", "Perks And Benefits", "Requirements", "About Us", "What We Offer", "Responsibilities", "Qualifications", "Nice to Haves".
+2. Break multi-point statements into distinct individual items.
+3. Classify each item as "REQUIRED" (must have / essential) or "NICE_TO_HAVE" (preferred / bonus / perk). For PERK_OR_CULTURE items, always set priority to "NICE_TO_HAVE".
+4. Real candidate scoring will ONLY be evaluated against SKILL, EXPERIENCE, EDUCATION, and RESPONSIBILITY. Company perks, celebrations, and office amenities MUST be classified as "PERK_OR_CULTURE".
+
+Respond with valid JSON matching:
+{
+  "title": "string",
+  "requirements": [
+    {
+      "text": "string",
+      "category": "SKILL" | "EXPERIENCE" | "EDUCATION" | "RESPONSIBILITY" | "PERK_OR_CULTURE",
+      "priority": "REQUIRED" | "NICE_TO_HAVE"
+    }
+  ]
+}`;
+
+      const userPrompt = `JOB DESCRIPTION TEXT:\n"""\n${rawText}\n"""`;
+      const parsedData = await callGroqJson<ParsedJobDescriptionResult>(systemPrompt, userPrompt);
+      return sanitizeRequirements(parsedData.title, parsedData.requirements);
+    } catch (groqErr) {
+      console.warn("Groq Job Description parsing warning, attempting Gemini fallback:", groqErr);
+    }
+  }
+
+  // 2. Try Gemini AI if configured
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (apiKey && apiKey !== "your_gemini_api_key_here" && apiKey.trim() !== "" && !apiKey.startsWith("AQ.")) {
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({
+        model: process.env.GEMINI_MODEL || "gemini-flash-latest",
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: jdSchema,
+          temperature: 0.1,
+        },
+      });
+
+      const prompt = `
 You are an expert technical recruiter and ATS parser.
 Analyze the job description below and extract:
 1. The exact or inferred Job Title.
@@ -182,46 +260,16 @@ ${rawText}
 """
 `;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
-    const parsedData = JSON.parse(responseText) as ParsedJobDescriptionResult;
+      const result = await model.generateContent(prompt);
+      const responseText = result.response.text();
+      const parsedData = JSON.parse(responseText) as ParsedJobDescriptionResult;
 
-    let requirements = Array.isArray(parsedData.requirements) ? parsedData.requirements : [];
-
-    // Filter out any section headings that slipped through
-    requirements = requirements.filter(
-      (r) => !SECTION_HEADING_REGEX.test(r.text.trim())
-    );
-
-    // Ensure category is set
-    requirements = requirements.map((r) => {
-      let cat = r.category;
-      if (!cat || !["SKILL", "EXPERIENCE", "EDUCATION", "RESPONSIBILITY", "PERK_OR_CULTURE"].includes(cat)) {
-        cat = PERK_OR_CULTURE_REGEX.test(r.text) ? "PERK_OR_CULTURE" : "SKILL";
-      }
-      return {
-        ...r,
-        category: cat,
-      };
-    });
-
-    // Ensure at least 3 genuine scoring requirements are returned
-    const scoringReqs = requirements.filter((r) => r.category !== "PERK_OR_CULTURE");
-    if (scoringReqs.length < 3) {
-      const fallbackReqs = fallbackJdParser(rawText).requirements;
-      for (const req of fallbackReqs) {
-        if (!requirements.some((r) => r.text.toLowerCase() === req.text.toLowerCase())) {
-          requirements.push(req);
-        }
-      }
+      return sanitizeRequirements(parsedData.title, parsedData.requirements);
+    } catch (error) {
+      console.warn("Gemini Job Description parsing warning, using fallback:", error);
     }
-
-    return {
-      title: parsedData.title || "Job Position",
-      requirements,
-    };
-  } catch (error) {
-    console.warn("Gemini Job Description parsing warning, using fallback:", error);
-    return fallbackJdParser(rawText);
   }
+
+  return fallbackJdParser(rawText);
 }
+

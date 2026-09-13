@@ -8,7 +8,7 @@ import { sanitizeAndStoreCandidate } from "../lib/security/sanitizer";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Starting Database Seed for AI Resume Analyzer...");
+  console.log("🌱 Starting Database Seed for Evidently...");
 
   try {
     // Clean existing seed data

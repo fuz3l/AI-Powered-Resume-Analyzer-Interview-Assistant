@@ -1,4 +1,4 @@
-// Prisma schema for AI-Powered Resume Analyzer & Interview Assistant
+// Prisma schema for Evidently - AI Candidate Evaluation & Interview Assistant
 
 generator client {
   provider        = "prisma-client-js"

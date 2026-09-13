@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useRef, DragEvent, ChangeEvent } from "react";
+import { useState, useEffect, useRef, DragEvent, ChangeEvent } from "react";
 import Link from "next/link";
 import {
-  UploadCloud,
+  CloudArrowUp,
   FileText,
-  AlertTriangle,
-  Loader2,
+  Warning,
+  CircleNotch,
   ArrowRight,
-  Sparkles,
-  Zap,
-  Layers,
+  Sparkle,
+  Lightning,
+  SquaresFour,
   Plus,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 interface BatchFileStatus {
@@ -33,8 +33,31 @@ export default function Home() {
   const [batchQueue, setBatchQueue] = useState<BatchFileStatus[]>([]);
   const [isProcessingBatch, setIsProcessingBatch] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [jobPositions, setJobPositions] = useState<{ id: string; title: string }[]>([]);
+  const [selectedJobId, setSelectedJobId] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    async function loadJobPositions() {
+      try {
+        const res = await fetch("/api/job-descriptions");
+        const data = await res.json();
+        const jds = Array.isArray(data) ? data : data?.jobDescriptions || [];
+        if (jds.length > 0) {
+          const list = jds.map((j: any) => ({ id: j.id || j.$id, title: j.title }));
+          setJobPositions(list);
+          // Default to UI/UX if present, otherwise first JD
+          const uiux = list.find((j: any) => j.title.toLowerCase().includes("ui") || j.title.toLowerCase().includes("design"));
+          setSelectedJobId(uiux ? uiux.id : list[0].id);
+        }
+      } catch (err) {
+        console.warn("Could not load job descriptions for batch upload:", err);
+      }
+    }
+    loadJobPositions();
+  }, []);
+
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -47,6 +70,11 @@ export default function Home() {
     e.stopPropagation();
     setIsDragging(false);
   };
+
+  const batchQueueRef = useRef<BatchFileStatus[]>(batchQueue);
+  useEffect(() => {
+    batchQueueRef.current = batchQueue;
+  }, [batchQueue]);
 
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -63,6 +91,9 @@ export default function Home() {
     if (e.target.files && e.target.files.length > 0) {
       const filesArr = Array.from(e.target.files);
       addFilesToBatch(filesArr);
+    }
+    if (e.target) {
+      e.target.value = "";
     }
   };
 
@@ -88,15 +119,15 @@ export default function Home() {
       return;
     }
 
-    const newQueueItems: BatchFileStatus[] = [];
     setBatchQueue((prev) => {
       const existingKeys = new Set(prev.map((item) => `${item.name}-${item.size}`));
+      const newQueueItems: BatchFileStatus[] = [];
       validFiles.forEach((file, idx) => {
         const key = `${file.name}-${file.size}`;
         if (!existingKeys.has(key)) {
           existingKeys.add(key);
           newQueueItems.push({
-            id: `batch-file-${Date.now()}-${idx}`,
+            id: `batch-file-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
             file,
             name: file.name,
             size: file.size,
@@ -111,28 +142,39 @@ export default function Home() {
   };
 
   const startBatchPipeline = async () => {
-    if (batchQueue.length === 0 || isProcessingBatch) return;
+    const queueSnapshot = [...batchQueueRef.current];
+    if (queueSnapshot.length === 0 || isProcessingBatch) return;
 
     setIsProcessingBatch(true);
     setGlobalError(null);
 
-    for (let i = 0; i < batchQueue.length; i++) {
-      const item = batchQueue[i];
-      if (item.status === "DONE") continue;
+    const pendingItems = queueSnapshot.filter((item) => item.status !== "DONE");
 
-      await processSingleFileWithRetries(item.id);
-    }
+    // Process resumes concurrently (2 at a time) to maximize throughput without hitting Gemini API rate limits
+    const CONCURRENCY = 2;
+    let nextIndex = 0;
+
+    const worker = async () => {
+      while (nextIndex < pendingItems.length) {
+        const item = pendingItems[nextIndex++];
+        if (item) {
+          await processSingleFileWithRetries(item.id);
+        }
+      }
+    };
+
+    const workers = Array.from(
+      { length: Math.min(CONCURRENCY, pendingItems.length) },
+      () => worker()
+    );
+
+    await Promise.all(workers);
 
     setIsProcessingBatch(false);
   };
 
   const processSingleFileWithRetries = async (itemId: string) => {
-    let currentItem: BatchFileStatus | undefined;
-    setBatchQueue((prev) => {
-      currentItem = prev.find((x) => x.id === itemId);
-      return prev;
-    });
-
+    const currentItem = batchQueueRef.current.find((x) => x.id === itemId);
     if (!currentItem) return;
 
     const maxRetries = 3;
@@ -150,6 +192,9 @@ export default function Home() {
       try {
         const formData = new FormData();
         formData.append("file", currentItem.file);
+        if (selectedJobId) {
+          formData.append("jobDescriptionId", selectedJobId);
+        }
 
         updateFileStatus(itemId, {
           status: "SUMMARIZING",
@@ -218,42 +263,43 @@ export default function Home() {
           
           {/* Header Card */}
           <header className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-600 font-extrabold text-sm shadow-sm">
-                <Layers className="w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold tracking-tight text-slate-900">
-                  Candidate Matrix
-                </h1>
-                <p className="text-xs font-medium text-slate-500">
+            <div className="flex items-center gap-3.5">
+              <Link href="/dashboard" className="flex items-center">
+                <img
+                  src="/logo.png"
+                  alt="Evidently"
+                  className="h-8 sm:h-9 w-auto object-contain"
+                />
+              </Link>
+              <div className="hidden md:block border-l border-slate-200 pl-3.5">
+                <p className="text-xs font-medium text-slate-500 whitespace-nowrap">
                   Bulk Resume Upload & Async Evaluation Pipeline
                 </p>
               </div>
             </div>
 
-            <nav className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-full border border-slate-200/80 font-medium text-xs">
+            <nav className="flex items-center gap-1 sm:gap-1.5 bg-slate-100 p-1.5 rounded-full border border-slate-200/80 font-medium text-xs flex-shrink-0">
               <Link
                 href="/dashboard"
-                className="px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition"
+                className="px-3 sm:px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition whitespace-nowrap"
               >
-                Dashboard
+                Candidate Matrix
               </Link>
               <Link
                 href="/job-descriptions"
-                className="px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition"
+                className="px-3 sm:px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition whitespace-nowrap"
               >
                 Job Positions
               </Link>
               <Link
                 href="/"
-                className="px-5 py-2 rounded-full bg-slate-900 text-white font-semibold shadow-sm transition"
+                className="px-4 sm:px-5 py-2 rounded-full bg-slate-900 text-white font-semibold shadow-sm transition whitespace-nowrap"
               >
-                Batch Pipeline
+                Batch Upload
               </Link>
               <Link
                 href="/how-to-use"
-                className="px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition"
+                className="px-3 sm:px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition whitespace-nowrap"
               >
                 How to Use
               </Link>
@@ -280,6 +326,33 @@ export default function Home() {
               </p>
             </div>
 
+            {/* Target Job Position Selector */}
+            {jobPositions.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-slate-50/90 rounded-2xl border border-slate-200">
+                <div className="space-y-0.5">
+                  <label htmlFor="target-role-select" className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Target Job Position for this Batch:
+                  </label>
+                  <p className="text-[11px] text-slate-500">
+                    Resumes will be automatically evaluated, scored, and categorized for this specific role.
+                  </p>
+                </div>
+                <select
+                  id="target-role-select"
+                  value={selectedJobId}
+                  onChange={(e) => setSelectedJobId(e.target.value)}
+                  className="bg-white border border-slate-300 rounded-xl px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 min-w-[260px] cursor-pointer"
+                >
+                  {jobPositions.map((jp) => (
+                    <option key={jp.id} value={jp.id}>
+                      {jp.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Drag & Drop Box */}
             <div
               onDragOver={handleDragOver}
@@ -303,7 +376,7 @@ export default function Home() {
 
               <div className="space-y-4 flex flex-col items-center">
                 <div className="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg">
-                  <UploadCloud className="w-8 h-8" />
+                  <CloudArrowUp weight="fill" className="w-8 h-8" />
                 </div>
                 <div className="space-y-1">
                   <p className="text-base font-bold text-slate-900">
@@ -329,7 +402,7 @@ export default function Home() {
             {/* Error Message */}
             {globalError && (
               <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-3 text-xs font-semibold">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0 text-rose-600" />
+                <Warning weight="fill" className="w-4 h-4 flex-shrink-0 text-rose-600" />
                 <span>{globalError}</span>
               </div>
             )}
@@ -383,7 +456,7 @@ export default function Home() {
                         <tr key={item.id} className="hover:bg-slate-100/60 transition">
                           <td className="py-4 px-5">
                             <div className="font-bold text-slate-900 flex items-center gap-2">
-                              <FileText className="w-4 h-4 text-emerald-600" />
+                              <FileText weight="fill" className="w-4 h-4 text-emerald-600" />
                               {item.name}
                             </div>
                             <div className="text-[11px] text-slate-500 mt-0.5">{item.stepMessage}</div>
@@ -421,7 +494,7 @@ export default function Home() {
                                 href={`/candidates/${item.candidateId}`}
                                 className="px-3.5 py-1.5 rounded-full bg-slate-900 text-white font-bold text-xs shadow-sm hover:bg-slate-800 transition inline-flex items-center gap-1"
                               >
-                                Inspect Profile <ArrowRight className="w-3.5 h-3.5" />
+                                Inspect Profile <ArrowRight weight="bold" className="w-3.5 h-3.5" />
                               </Link>
                             ) : item.status === "FAILED" ? (
                               <button

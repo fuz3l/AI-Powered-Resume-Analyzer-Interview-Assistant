@@ -134,6 +134,8 @@ function generateFallbackQuestions(
   return questions;
 }
 
+import { isGroqConfigured, callGroqJson } from "../groq/client";
+
 /**
  * Generates grounded interview questions tailored to specific candidate skill gaps and seniority level.
  */
@@ -144,31 +146,13 @@ export async function generateGroundedInterviewQuestions(
   requirementScores: RequirementMatchDetail[],
   skillGaps: SkillGapItem[]
 ): Promise<GeneratedQuestion[]> {
-  const apiKey = process.env.GEMINI_API_KEY;
   const seniority = inferSeniorityLevel(candidate.parsedJson, candidate.rawText);
 
-  let questions: GeneratedQuestion[] = [];
+  const gapsFormatted = skillGaps
+    .map((g) => `- Skill Gap [${g.gapType}]: "${g.skillName}" (${g.reason || "Low match"})`)
+    .join("\n");
 
-  if (!apiKey || apiKey === "your_gemini_api_key_here" || apiKey.trim() === "") {
-    questions = generateFallbackQuestions(skillGaps, seniority);
-  } else {
-    try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({
-        model: process.env.GEMINI_MODEL || "gemini-flash-latest",
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: questionSchema,
-          temperature: 0.2,
-        },
-      });
-
-      const gapsFormatted = skillGaps
-        .map((g) => `- Skill Gap [${g.gapType}]: "${g.skillName}" (${g.reason || "Low match"})`)
-        .join("\n");
-
-      const prompt = `
-You are an expert interviewer creating candidate-specific, grounded interview questions.
+  const prompt = `You are an expert interviewer creating candidate-specific, grounded interview questions.
 Target Job Title: "${jobDescription.title || "Software Developer"}"
 Candidate Seniority Level Detected: "${seniority}"
 
@@ -181,19 +165,66 @@ INSTRUCTIONS FOR QUESTION GENERATION:
 2. Generate 2-3 BEHAVIORAL questions calibrated specifically to the candidate's detected seniority level ("${seniority}").
 `;
 
-      const result = await model.generateContent(prompt);
-      const responseText = result.response.text();
-      const parsedData = JSON.parse(responseText);
+  let questions: GeneratedQuestion[] = [];
 
-      if (Array.isArray(parsedData.questions) && parsedData.questions.length > 0) {
-        questions = parsedData.questions;
-      } else {
-        questions = generateFallbackQuestions(skillGaps, seniority);
-      }
-    } catch (err) {
-      console.warn("Gemini question generation failed, using fallback:", err);
-      questions = generateFallbackQuestions(skillGaps, seniority);
+  // 1. Try Groq Cloud if configured
+  if (isGroqConfigured()) {
+    try {
+      const systemPrompt = `You are an expert interviewer creating candidate-specific, grounded interview questions.
+Respond with valid JSON matching:
+{
+  "questions": [
+    {
+      "questionText": "string",
+      "reasoning": "string",
+      "category": "TECHNICAL" | "BEHAVIORAL"
     }
+  ]
+}`;
+      const parsedData = await callGroqJson<{ questions: GeneratedQuestion[] }>(systemPrompt, prompt);
+      if (Array.isArray(parsedData?.questions) && parsedData.questions.length > 0) {
+        questions = parsedData.questions.map((q) => ({
+          questionText: String(q.questionText || "").trim(),
+          reasoning: String(q.reasoning || "").trim(),
+          category: q.category === "BEHAVIORAL" ? "BEHAVIORAL" : "TECHNICAL",
+        }));
+      }
+    } catch (groqErr) {
+      console.warn("Groq question generation failed, attempting Gemini fallback:", groqErr);
+    }
+  }
+
+  // 2. Try Gemini AI if Groq was not used or failed
+  if (questions.length === 0) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (apiKey && apiKey !== "your_gemini_api_key_here" && apiKey.trim() !== "" && !apiKey.startsWith("AQ.")) {
+      try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({
+          model: process.env.GEMINI_MODEL || "gemini-flash-latest",
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: questionSchema,
+            temperature: 0.2,
+          },
+        });
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+        const parsedData = JSON.parse(responseText);
+
+        if (Array.isArray(parsedData.questions) && parsedData.questions.length > 0) {
+          questions = parsedData.questions;
+        }
+      } catch (err) {
+        console.warn("Gemini question generation failed, using fallback:", err);
+      }
+    }
+  }
+
+  // 3. Fallback to heuristic questions if neither provider returned questions
+  if (questions.length === 0) {
+    questions = generateFallbackQuestions(skillGaps, seniority);
   }
 
   // Store in InterviewQuestions collection in Appwrite DB
@@ -214,5 +245,6 @@ INSTRUCTIONS FOR QUESTION GENERATION:
 
   return questions;
 }
+
 
 export const generateInterviewQuestions = generateGroundedInterviewQuestions;

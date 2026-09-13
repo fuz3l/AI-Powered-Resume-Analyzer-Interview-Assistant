@@ -3,20 +3,20 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  Search,
-  ShieldAlert,
-  ChevronDown,
-  Sparkles,
+  MagnifyingGlass,
+  ShieldWarning,
+  CaretDown,
+  Sparkle,
   ArrowRight,
-  Zap,
+  Lightning,
   Clock,
-  Award,
-  Layers,
+  Trophy,
+  SquaresFour,
   Users,
-  CheckCircle2,
-  Filter,
+  CheckCircle,
+  Funnel,
   Plus,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 interface JobDescriptionOption {
@@ -79,13 +79,23 @@ export default function DashboardPage() {
     if (!selectedJdId || candidates.length === 0 || matchingPool) return;
     setMatchingPool(true);
     try {
-      for (const cand of candidates) {
-        await fetch("/api/match", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ candidateId: cand.id, jobDescriptionId: selectedJdId }),
-        });
-      }
+      const CONCURRENCY = 2;
+      let nextIndex = 0;
+      const worker = async () => {
+        while (nextIndex < candidates.length) {
+          const cand = candidates[nextIndex++];
+          if (cand) {
+            await fetch("/api/match", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ candidateId: cand.id, jobDescriptionId: selectedJdId }),
+            });
+          }
+        }
+      };
+      await Promise.all(
+        Array.from({ length: Math.min(CONCURRENCY, candidates.length) }, () => worker())
+      );
       await fetchDashboardData(selectedJdId);
     } catch (err) {
       console.error("Re-evaluating pool error:", err);
@@ -163,63 +173,69 @@ export default function DashboardPage() {
           
 
           {/* Authentic ATS Header Navigation Bar */}
-          <header className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <header className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/80 flex flex-col lg:flex-row lg:items-center justify-between gap-4 flex-wrap">
             {/* Branding */}
-            <div className="flex items-center gap-3">
-             
-              <div>
-                <h1 className="text-lg font-bold tracking-tight text-slate-900">
-                  Candidate Matrix <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 ml-1">v2.0</span>
-                </h1>
-                <p className="text-xs font-medium text-slate-500">
+            <div className="flex items-center gap-3.5 flex-shrink-0">
+              <Link href="/dashboard" className="flex items-center">
+                <img
+                  src="/logo.png"
+                  alt="Evidently"
+                  className="h-8 sm:h-9 w-auto object-contain"
+                />
+              </Link>
+              <div className="hidden xl:flex items-center gap-2 pl-3.5 border-l border-slate-200">
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
+                  v2.0
+                </span>
+                <p className="text-xs font-medium text-slate-500 whitespace-nowrap">
                   AI ATS evaluation, vector match scoring, & bias masking
                 </p>
               </div>
             </div>
 
             {/* Navigation Pills */}
-            <nav className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-full border border-slate-200/80 font-medium text-xs">
+            <nav className="flex items-center gap-1 sm:gap-1.5 bg-slate-100 p-1.5 rounded-full border border-slate-200/80 font-medium text-xs flex-shrink-0">
               <Link
                 href="/dashboard"
-                className="px-5 py-2 rounded-full bg-slate-900 text-white font-semibold shadow-sm transition"
+                className="px-4 sm:px-5 py-2 rounded-full bg-slate-900 text-white font-semibold shadow-sm transition whitespace-nowrap"
               >
                 Candidate Matrix
               </Link>
               <Link
                 href="/job-descriptions"
-                className="px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition"
+                className="px-3 sm:px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition whitespace-nowrap"
               >
                 Job Positions
               </Link>
               <Link
                 href="/"
-                className="px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition"
+                className="px-3 sm:px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition whitespace-nowrap"
               >
                 Batch Upload
               </Link>
               <Link
                 href="/how-to-use"
-                className="px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition"
+                className="px-3 sm:px-4 py-2 rounded-full text-slate-600 hover:text-slate-900 transition whitespace-nowrap"
               >
                 How to Use
               </Link>
             </nav>
 
             {/* Header Controls: Match Pool & Blind Mode Toggle */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
               <button
                 type="button"
                 disabled={matchingPool || !selectedJdId}
                 onClick={reevaluateMatchScores}
-                className="px-3.5 py-1.5 rounded-full text-xs font-semibold transition border flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer disabled:opacity-50 shadow-sm"
+                className="px-3.5 py-1.5 rounded-full text-xs font-semibold transition border flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer disabled:opacity-50 shadow-sm whitespace-nowrap"
               >
-                <Sparkles className={`w-3.5 h-3.5 ${matchingPool ? "animate-spin" : ""}`} />
+                <Sparkle weight="fill" className={`w-3.5 h-3.5 ${matchingPool ? "animate-spin" : ""}`} />
                 <span>{matchingPool ? "Scoring Pool..." : "Run AI Match"}</span>
               </button>
               <button
                 type="button"
                 onClick={toggleBlindMode}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition border flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition border flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
                   blindMode
                     ? "bg-purple-600 text-white border-purple-600 shadow-sm"
                     : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200"
@@ -235,7 +251,7 @@ export default function DashboardPage() {
             {/* Card 1: Total Candidates */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/80 space-y-4">
               <div className="w-10 h-10 rounded-full bg-teal-500 text-white flex items-center justify-center shadow-md">
-                <Users className="w-5 h-5" />
+                <Users weight="fill" className="w-5 h-5" />
               </div>
               <div>
                 <div className="text-3xl font-extrabold text-slate-900 flex items-baseline gap-2">
@@ -250,7 +266,7 @@ export default function DashboardPage() {
             {/* Card 2: Strong Fit Candidates */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/80 space-y-4">
               <div className="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-md">
-                <Award className="w-5 h-5" />
+                <Trophy weight="fill" className="w-5 h-5" />
               </div>
               <div>
                 <div className="text-3xl font-extrabold text-slate-900 flex items-baseline gap-2">
@@ -265,7 +281,7 @@ export default function DashboardPage() {
             {/* Card 3: Security Flagged Resumes */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/80 space-y-4">
               <div className="w-10 h-10 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-md">
-                <ShieldAlert className="w-5 h-5" />
+                <ShieldWarning weight="fill" className="w-5 h-5" />
               </div>
               <div>
                 <div className="text-3xl font-extrabold text-slate-900 flex items-baseline gap-2">
@@ -313,7 +329,7 @@ export default function DashboardPage() {
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <CaretDown weight="fill" className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 )}
               </div>
@@ -322,7 +338,7 @@ export default function DashboardPage() {
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
                 {/* Search */}
                 <div className="relative w-full sm:w-72">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <MagnifyingGlass weight="bold" className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     placeholder={blindMode ? "Filter by candidate ID..." : "Search by candidate name..."}
@@ -459,7 +475,7 @@ export default function DashboardPage() {
                               href={`/candidates/${c.id}`}
                               className="px-4 py-2 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shadow-sm flex items-center gap-1"
                             >
-                              Inspect <ArrowRight className="w-3.5 h-3.5" />
+                              Inspect <ArrowRight weight="bold" className="w-3.5 h-3.5" />
                             </Link>
                           </div>
                         </div>
@@ -509,7 +525,7 @@ export default function DashboardPage() {
               <div className="bg-amber-100/90 border border-amber-300 rounded-3xl p-6 text-amber-950 space-y-4 shadow-sm">
                 <div className="flex items-center justify-between">
                   <span className="px-3 py-1 rounded-full bg-orange-600 text-white font-bold text-xs shadow-sm flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 fill-white" />
+                    <Sparkle weight="fill" className="w-3.5 h-3.5 fill-white" />
                     AI Pool Insight
                   </span>
                   <span className="text-xs font-semibold text-amber-800">

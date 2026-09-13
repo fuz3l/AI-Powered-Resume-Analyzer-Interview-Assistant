@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Component, ErrorInfo, ReactNode } from "react";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Warning, ArrowCounterClockwise } from "@phosphor-icons/react";
 
 interface Props {
   children: ReactNode;
@@ -37,7 +37,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="p-6 rounded-2xl bg-rose-50 border border-rose-200 text-rose-950 space-y-4 my-4 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600">
-              <AlertTriangle className="w-5 h-5" />
+              <Warning weight="fill" className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-base">
@@ -60,7 +60,7 @@ export class ErrorBoundary extends Component<Props, State> {
               onClick={this.handleReset}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-sm transition"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <ArrowCounterClockwise weight="bold" className="w-3.5 h-3.5" />
               Try Recovering Component
             </button>
           </div>

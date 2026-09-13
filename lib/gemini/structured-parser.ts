@@ -125,54 +125,102 @@ function fallbackHeuristicParser(rawText: string): CandidateParsedJson {
   };
 }
 
+import { isGroqConfigured, callGroqJson } from "../groq/client";
+
 /**
- * Sends raw resume text to Gemini API using JSON Structured Mode.
+ * Parses resume text using Groq or Gemini AI using JSON Structured Mode,
+ * falling back to heuristic parsing if neither is configured.
  */
 export async function parseResumeWithGemini(
   rawText: string
 ): Promise<CandidateParsedJson> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const safeInputText = wrapInSafetyBoundary(rawText);
 
-  if (!apiKey || apiKey === "your_gemini_api_key_here" || apiKey.trim() === "") {
-    console.warn("GEMINI_API_KEY not configured. Utilizing fallback heuristic extraction.");
-    return fallbackHeuristicParser(rawText);
+  // 1. Try Groq Cloud if configured (ultra-low latency)
+  if (isGroqConfigured()) {
+    try {
+      const systemPrompt = `You are an expert ATS (Applicant Tracking System) resume parser. 
+Extract structured information from the provided resume text into clean JSON matching this exact JSON schema:
+{
+  "name": "string (Candidate full name)",
+  "email": "string",
+  "phone": "string",
+  "skills": ["string (technical or soft skill)"],
+  "workExperience": [
+    {
+      "company": "string",
+      "role": "string",
+      "duration": "string",
+      "bullets": ["string (bullet point describing achievements or responsibilities)"]
+    }
+  ],
+  "education": [
+    {
+      "institution": "string",
+      "degree": "string",
+      "year": "string"
+    }
+  ],
+  "certifications": ["string"]
+}
+Output only valid JSON without any markdown formatting.`;
+
+      const userPrompt = `Here is the candidate resume to parse:\n\n${safeInputText}`;
+      const parsedData = await callGroqJson<CandidateParsedJson>(systemPrompt, userPrompt);
+
+      return {
+        name: parsedData.name || "Unknown Candidate",
+        email: parsedData.email || "",
+        phone: parsedData.phone || "",
+        skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
+        workExperience: Array.isArray(parsedData.workExperience) ? parsedData.workExperience : [],
+        education: Array.isArray(parsedData.education) ? parsedData.education : [],
+        certifications: Array.isArray(parsedData.certifications) ? parsedData.certifications : [],
+      };
+    } catch (groqErr) {
+      console.warn("Groq resume parsing failed, attempting Gemini fallback:", groqErr);
+    }
   }
 
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || "gemini-flash-latest",
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: candidateSchema,
-        temperature: 0.1,
-      },
-    });
+  // 2. Try Gemini AI if configured
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (apiKey && apiKey !== "your_gemini_api_key_here" && apiKey.trim() !== "" && !apiKey.startsWith("AQ.")) {
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({
+        model: process.env.GEMINI_MODEL || "gemini-flash-latest",
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: candidateSchema,
+          temperature: 0.1,
+        },
+      });
 
-    const safeInputText = wrapInSafetyBoundary(rawText);
-    const prompt = `
+      const prompt = `
 You are an expert ATS (Applicant Tracking System) resume parser. 
 Extract structured information from the provided resume text into clean JSON.
 
 ${safeInputText}
 `;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
-    const parsedData = JSON.parse(responseText) as CandidateParsedJson;
+      const result = await model.generateContent(prompt);
+      const responseText = result.response.text();
+      const parsedData = JSON.parse(responseText) as CandidateParsedJson;
 
-    // Ensure empty defaults for missing keys
-    return {
-      name: parsedData.name || "Unknown Candidate",
-      email: parsedData.email || "",
-      phone: parsedData.phone || "",
-      skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
-      workExperience: Array.isArray(parsedData.workExperience) ? parsedData.workExperience : [],
-      education: Array.isArray(parsedData.education) ? parsedData.education : [],
-      certifications: Array.isArray(parsedData.certifications) ? parsedData.certifications : [],
-    };
-  } catch (error) {
-    console.error("Gemini Structured Parsing failed, switching to heuristic fallback:", error);
-    return fallbackHeuristicParser(rawText);
+      return {
+        name: parsedData.name || "Unknown Candidate",
+        email: parsedData.email || "",
+        phone: parsedData.phone || "",
+        skills: Array.isArray(parsedData.skills) ? parsedData.skills : [],
+        workExperience: Array.isArray(parsedData.workExperience) ? parsedData.workExperience : [],
+        education: Array.isArray(parsedData.education) ? parsedData.education : [],
+        certifications: Array.isArray(parsedData.certifications) ? parsedData.certifications : [],
+      };
+    } catch (error) {
+      console.error("Gemini Structured Parsing failed, switching to heuristic fallback:", error);
+    }
   }
+
+  return fallbackHeuristicParser(rawText);
 }
+
